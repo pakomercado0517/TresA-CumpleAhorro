@@ -1,0 +1,811 @@
+---
+alwaysApply: true
+---
+
+# Reglas del Proyecto - Tanda Cumpleañera Frontend
+
+## 👨‍💻 Rol del Desarrollador
+
+**Desarrollador Senior en Frontend** con especialidad en:
+
+- **Frameworks**: Next.js, React.js
+- **Lenguajes**: JavaScript, TypeScript, HTML, CSS
+- **Herramientas UX/UI modernas**: Tailwind CSS, shadcn/ui, Radix UI
+- **Bases de datos**: PostgreSQL (conocimiento para integración)
+- **Otras tecnologías**: Zustand, React Hook Form, TanStack Query, date-fns, Sonner
+
+---
+
+## 📋 Reglas Principales
+
+### 1. Tipado Robusto
+
+#### ✅ OBLIGATORIO
+
+- **NO usar `any`** en ningún caso
+- **NO usar tipos genéricos** sin especificar (ej: `Array<>` → usar `Array<Type>`)
+- **Definir tipos explícitos** para todas las funciones, props, estados y variables
+- **Usar `unknown`** en lugar de `any` cuando el tipo sea realmente desconocido
+- **Validar tipos** con type guards cuando sea necesario
+
+#### ❌ PROHIBIDO
+
+```typescript
+// ❌ MAL
+const data: any = await fetchData();
+function process(item: any) {}
+const list: Array = [];
+
+// ✅ BIEN
+const data: ApiResponse = await fetchData();
+function process(item: Member): void {}
+const list: Array<Member> = [];
+```
+
+#### Tipos de la API
+
+- Crear tipos TypeScript basados en la documentación de la API
+- Mantener sincronizados los tipos con las respuestas del backend
+- Usar tipos compartidos en carpeta `types/` o `@/types`
+
+---
+
+### 2. Modularización y Estructura
+
+#### Estructura de Carpetas por Ruta
+
+Cada ruta debe tener su propia carpeta con componentes específicos:
+
+```
+app/
+  (auth)/
+    login/
+      page.tsx              # Solo anfitrión, sin lógica
+      components/            # Componentes específicos de login
+        LoginForm.tsx
+        LoginHeader.tsx
+  (dashboard)/
+    dashboard/
+      page.tsx              # Solo anfitrión
+      components/           # Componentes específicos del dashboard
+        DashboardWidgets.tsx
+        UpcomingBirthdays.tsx
+        DailyPayments.tsx
+    groups/
+      page.tsx              # Solo anfitrión
+      components/           # Componentes específicos de grupos
+        GroupsList.tsx
+        GroupCard.tsx
+        CreateGroupModal.tsx
+```
+
+#### Regla del `page.tsx`
+
+- **`page.tsx` debe ser SOLO un anfitrión**
+- **NO debe contener lógica de negocio**
+- **NO debe contener estados complejos**
+- **Solo debe importar y renderizar componentes**
+
+#### ✅ BIEN
+
+```typescript
+// app/dashboard/groups/page.tsx
+import { GroupsPageContent } from "./components/GroupsPageContent";
+
+export default function GroupsPage() {
+  return <GroupsPageContent />;
+}
+```
+
+#### ❌ MAL
+
+```typescript
+// app/dashboard/groups/page.tsx
+export default function GroupsPage() {
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Lógica compleja aquí...
+  }, []);
+
+  return <div>{/* JSX complejo aquí... */}</div>;
+}
+```
+
+#### Componentes Globales
+
+- Componentes reutilizables en `components/` (raíz)
+- Componentes de UI base en `components/ui/` (shadcn/ui)
+- Componentes de layout en `components/layout/`
+- Hooks personalizados en `hooks/`
+- Utilidades en `lib/` o `utils/`
+
+---
+
+### 3. Documentación
+
+#### Ubicación
+
+- **Toda la documentación en `/docs`**
+- **NO crear archivos de documentación en la raíz** (excepto README.md)
+
+#### Estructura de Documentación
+
+```
+docs/
+  PROJECT_RULES.md          # Este archivo
+  API_DOCUMENTATION.md       # Documentación de API (si aplica)
+  DATE_HANDLING_FRONTEND.md # Guías específicas
+  COMPONENTS.md              # Documentación de componentes
+  ARCHITECTURE.md            # Arquitectura del proyecto
+```
+
+#### Formato de Documentación
+
+- Usar Markdown
+- Incluir ejemplos de código cuando sea necesario
+- Mantener actualizada con los cambios del proyecto
+
+---
+
+## 🎯 Reglas Adicionales Recomendadas
+
+### 4. Convenciones de Nombres
+
+#### Archivos y Carpetas
+
+- **Componentes**: PascalCase (`UserCard.tsx`, `LoginForm.tsx`)
+- **Utilidades/Hooks**: camelCase (`formatDate.ts`, `useAuth.ts`)
+- **Tipos/Interfaces**: PascalCase (`User.ts`, `ApiResponse.ts`)
+- **Constantes**: UPPER_SNAKE_CASE (`API_BASE_URL`, `MAX_FILE_SIZE`)
+- **Carpetas**: kebab-case (`user-profile/`, `api-routes/`)
+
+#### Variables y Funciones
+
+- **Variables**: camelCase (`userName`, `isLoading`)
+- **Funciones**: camelCase (`fetchUserData`, `handleSubmit`)
+- **Componentes React**: PascalCase (`UserCard`, `LoginForm`)
+- **Hooks personalizados**: Prefijo `use` (`useAuth`, `useGroups`)
+
+#### Booleanos
+
+- Prefijo `is`, `has`, `should`, `can` (`isLoading`, `hasError`, `shouldRender`)
+
+---
+
+### 5. Manejo de Estado
+
+#### Estado Local
+
+- **`useState`** para estado simple del componente
+- **`useReducer`** para estado complejo con múltiples acciones
+
+#### Estado Global
+
+- **Zustand** para estado global de la aplicación
+- **TanStack Query** para estado del servidor (cache, sincronización)
+- **Context API** solo si es absolutamente necesario (preferir Zustand)
+
+#### Estructura de Stores (Zustand)
+
+```
+stores/
+  authStore.ts
+  groupsStore.ts
+  membersStore.ts
+```
+
+---
+
+### 6. Manejo de Errores
+
+#### Errores de API
+
+- **Siempre manejar errores** de las llamadas a la API
+- **Mostrar mensajes de error** amigables al usuario
+- **Usar try-catch** en funciones async
+- **Validar respuestas** antes de usar los datos
+
+#### Error Boundaries
+
+- Implementar Error Boundaries para errores de React
+- Mostrar UI de error amigable en lugar de pantalla blanca
+
+#### Validaciones
+
+- **Validar en el frontend** antes de enviar al backend
+- **Usar React Hook Form + Zod** para validaciones de formularios
+- **Mostrar errores de validación** de forma clara
+
+---
+
+### 7. Formato de Código
+
+#### Prettier (Recomendado)
+
+- Configurar Prettier para formato consistente
+- Usar configuración del equipo/proyecto
+
+#### ESLint
+
+- Seguir reglas de ESLint configuradas
+- No deshabilitar reglas sin justificación
+
+#### Imports
+
+- **Ordenar imports**: externos → internos → relativos
+- **Usar path aliases** (`@/components`, `@/lib`, `@/types`)
+- **Agrupar imports**: React → librerías → componentes → utilidades → tipos
+
+```typescript
+// ✅ BIEN
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import type { Member } from "@/types/member";
+```
+
+---
+
+### 8. Performance
+
+#### Optimizaciones
+
+- **Usar `React.memo`** para componentes que se re-renderizan frecuentemente
+- **Lazy loading** de componentes pesados con `next/dynamic`
+- **Code splitting** automático de Next.js
+- **Optimizar imágenes** con `next/image`
+
+#### Re-renders
+
+- **Evitar re-renders innecesarios**
+- **Usar `useMemo`** y `useCallback` cuando sea apropiado
+- **No abusar** de `useMemo` y `useCallback` (solo cuando hay beneficio real)
+
+---
+
+### 9. Accesibilidad (a11y)
+
+#### Obligatorio
+
+- **Atributos ARIA** cuando sea necesario
+- **Navegación por teclado** funcional
+- **Contraste de colores** adecuado (WCAG AA mínimo)
+- **Labels** en todos los inputs
+- **Alt text** en imágenes
+
+#### shadcn/ui y Radix UI
+
+- Usar componentes de shadcn/ui y Radix UI que ya incluyen accesibilidad
+- No modificar la accesibilidad de estos componentes sin justificación
+
+---
+
+### 10. Seguridad
+
+#### Autenticación
+
+- **Nunca almacenar tokens** en localStorage sin considerar alternativas
+- **Usar httpOnly cookies** cuando sea posible (si el backend lo soporta)
+- **Validar tokens** antes de hacer peticiones
+- **Manejar expiración** de tokens correctamente
+
+#### Validación
+
+- **Validar datos** antes de enviar al backend
+- **Sanitizar inputs** del usuario
+- **No confiar** solo en validación del frontend
+
+#### Variables de Entorno
+
+- **Nunca commitear** `.env.local` o archivos con secretos
+- **Usar variables de entorno** para URLs de API y configuraciones
+- **Validar** que las variables de entorno existan al iniciar
+
+---
+
+### 11. Testing (Futuro)
+
+#### Estructura
+
+- **Tests unitarios** para utilidades y hooks
+- **Tests de componentes** para componentes complejos
+- **Tests de integración** para flujos críticos
+
+#### Herramientas
+
+- **Vitest** para tests unitarios
+- **React Testing Library** para tests de componentes
+- **Playwright** o **Cypress** para tests E2E (opcional)
+
+---
+
+### 12. Git Workflow
+
+#### Commits
+
+- **Mensajes descriptivos** en español
+- **Formato**: `tipo(scope): descripción`
+- **Tipos**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+#### Branches
+
+- **`main`** o **`master`**: producción
+- **`develop`**: desarrollo
+- **Feature branches**: `feature/nombre-feature`
+- **Fix branches**: `fix/nombre-fix`
+
+---
+
+### 13. Comentarios y Documentación de Código
+
+#### Comentarios
+
+- **Comentar código complejo** o no obvio
+- **Evitar comentarios obvios** que repiten el código
+- **Usar JSDoc** para funciones públicas/complejas
+
+#### Documentación de Componentes
+
+- **Props documentadas** con TypeScript (tipos explícitos)
+- **Ejemplos de uso** en comentarios cuando sea necesario
+
+```typescript
+/**
+ * Componente para mostrar la tarjeta de un miembro
+ * @param member - Datos del miembro a mostrar
+ * @param onEdit - Callback cuando se hace clic en editar
+ */
+export function MemberCard({ member, onEdit }: MemberCardProps) {
+  // ...
+}
+```
+
+---
+
+### 14. Hooks Personalizados
+
+#### Estructura
+
+- **Crear hooks** para lógica reutilizable
+- **Prefijo `use`** obligatorio
+- **Ubicación**: `hooks/` en la raíz
+
+#### Ejemplos
+
+- `useAuth.ts` - Autenticación
+- `useGroups.ts` - Gestión de grupos
+- `useMembers.ts` - Gestión de miembros
+- `useEvents.ts` - Gestión de eventos
+
+---
+
+### 15. Utilidades
+
+#### Estructura
+
+- **Funciones puras** cuando sea posible
+- **Ubicación**: `lib/` o `utils/`
+- **Organizar por dominio**: `lib/date.ts`, `lib/format.ts`, `lib/validation.ts`
+
+#### Ejemplos
+
+- Formateo de fechas (usar date-fns)
+- Formateo de monedas
+- Validaciones
+- Transformaciones de datos
+
+---
+
+### 16. Variables de Entorno
+
+#### Archivo `.env.local`
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_APP_NAME=Tanda Cumpleañera
+```
+
+#### Validación
+
+- **Validar** que las variables existan al iniciar
+- **Usar valores por defecto** cuando sea apropiado
+- **Tipar** las variables de entorno
+
+---
+
+### 17. Loading States
+
+#### Obligatorio
+
+- **Mostrar estados de carga** en todas las operaciones async
+- **Usar skeletons** o spinners apropiados
+- **Evitar** pantallas en blanco durante carga
+
+#### Implementación
+
+- **TanStack Query** maneja loading states automáticamente
+- **Estados locales** para operaciones simples
+- **Componentes de loading** reutilizables
+
+---
+
+### 18. Manejo de Fechas
+
+> **Referencia completa**: Ver `docs/DATE_HANDLING_FRONTEND.md` para detalles exhaustivos.
+
+#### 📋 Resumen Rápido
+
+- **Enviar al backend**: Formato `yyyy-MM-dd` (ejemplo: `"2024-12-15"`)
+- **Recibir del backend**: Formato `yyyy-MM-dd` para fechas de solo fecha, ISO 8601 para timestamps
+- **Timezone**: El backend maneja automáticamente la conversión (Veracruz, México - America/Mexico_City)
+- **NO convertir timezones**: El frontend NO debe convertir timezones manualmente, el backend lo hace automáticamente
+
+#### 🎯 Formatos de Fechas
+
+##### Fechas de Solo Fecha (DATEONLY)
+
+**Campos afectados:**
+
+- `birthday` (Miembros)
+- `birthdayDate` (Eventos)
+- `datePaid` (Pagos)
+
+**Formato requerido:** `yyyy-MM-dd`
+
+**Ejemplos:**
+
+```typescript
+"2024-12-15"; // ✅ Correcto
+"2024-3-5"; // ❌ Incorrecto (debe ser "2024-03-05")
+"15/12/2024"; // ❌ Incorrecto (formato incorrecto)
+"2024-12-15T10:00:00"; // ❌ Incorrecto (no incluir hora)
+```
+
+##### Timestamps (createdAt, updatedAt)
+
+**Formato recibido:** ISO 8601 (UTC)
+
+**Ejemplos:**
+
+```typescript
+"2024-12-15T10:30:00.000Z"; // Formato completo ISO 8601
+```
+
+**Nota:** Estos campos son solo lectura, el frontend no los envía.
+
+#### 📤 Enviar Fechas al Backend
+
+##### Campos que requieren fechas
+
+**1. Crear/Actualizar Miembro:**
+
+```typescript
+{
+  name: string;
+  birthday: "2024-12-15";  // Formato: yyyy-MM-dd
+  phone?: string;
+  photoUrl?: string;
+}
+```
+
+**2. Crear/Actualizar Pago:**
+
+```typescript
+{
+  memberId: number;
+  amount: number;
+  datePaid: "2024-12-15";  // Formato: yyyy-MM-dd
+  proofUrl?: string;
+}
+```
+
+##### Validaciones del Backend
+
+El backend valida que:
+
+- ✅ La fecha esté en formato `yyyy-MM-dd`
+- ✅ La fecha sea válida (no fechas como `2024-13-45`)
+- ✅ La fecha no sea futura (para `birthday` y `datePaid`)
+
+#### 📥 Recibir Fechas del Backend
+
+##### Fechas de Solo Fecha (DATEONLY)
+
+**Formato recibido:** `yyyy-MM-dd`
+
+**Uso en el frontend:**
+
+```typescript
+// Puedes usar directamente en inputs de tipo "date"
+<input type="date" value={member.birthday} />;
+
+// O formatear para mostrar
+const formattedDate = new Date(
+  member.birthday + "T00:00:00"
+).toLocaleDateString("es-MX", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+// Resultado: "15 de marzo de 1990"
+```
+
+##### Timestamps (createdAt, updatedAt)
+
+**Formato recibido:** ISO 8601 (UTC)
+
+**Uso en el frontend:**
+
+```typescript
+// Convertir a fecha local para mostrar
+const createdAt = new Date(member.createdAt);
+const formatted = createdAt.toLocaleString("es-MX", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+// Resultado: "15 de diciembre de 2024, 04:30" (ajustado a Veracruz)
+```
+
+#### ⚠️ Reglas Importantes
+
+##### ✅ HACER
+
+1. **Usar formato `yyyy-MM-dd`** para todas las fechas de solo fecha
+2. **Enviar fechas como strings**, no como objetos Date
+3. **Usar directamente** las fechas recibidas del backend (ya están convertidas)
+4. **Formatear solo para mostrar** al usuario, no para enviar al backend
+5. **Usar `type="date"`** en inputs HTML (genera formato correcto automáticamente)
+
+##### ❌ NO HACER
+
+1. **NO convertir timezones** manualmente (el backend lo hace)
+2. **NO enviar objetos Date** directamente (convertir a string primero)
+3. **NO incluir hora** en fechas DATEONLY (solo fecha)
+4. **NO usar formatos diferentes** a `yyyy-MM-dd`
+5. **NO modificar** las fechas recibidas del backend antes de enviarlas
+
+#### 🛠️ Utilidades Recomendadas
+
+##### Opción 1: date-fns (Recomendado)
+
+```typescript
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+
+// Formatear fecha recibida del backend para mostrar
+const displayDate = format(
+  parseISO(member.birthday + "T00:00:00"),
+  "dd 'de' MMMM 'de' yyyy",
+  { locale: es }
+);
+// Resultado: "15 de marzo de 1990"
+
+// Formatear timestamp para mostrar
+const displayTimestamp = format(
+  parseISO(member.createdAt),
+  "dd/MM/yyyy HH:mm",
+  { locale: es }
+);
+// Resultado: "15/12/2024 04:30"
+```
+
+##### Opción 2: JavaScript Nativo
+
+```typescript
+// Formatear fecha DATEONLY para mostrar
+const formatDateOnly = (dateString: string): string => {
+  const date = new Date(dateString + "T00:00:00");
+  return date.toLocaleDateString("es-MX", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
+// Formatear timestamp para mostrar
+const formatTimestamp = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleString("es-MX", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+```
+
+##### Opción 3: React Hook Form + date-fns
+
+```typescript
+import { useForm } from "react-hook-form";
+import { format } from "date-fns";
+
+const { register, handleSubmit } = useForm();
+
+// Input de fecha
+<input
+  type="date"
+  {...register("birthday", {
+    required: true,
+    valueAsDate: false, // Mantener como string
+  })}
+/>;
+
+// Al enviar, el valor ya está en formato yyyy-MM-dd
+const onSubmit = (data) => {
+  // data.birthday ya está en formato "2024-12-15"
+  fetch("/api/groups/1/members", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
+```
+
+#### 📝 Validación de Fechas
+
+##### Función de Validación Recomendada
+
+```typescript
+const validateDate = (dateString: string): boolean => {
+  // Verificar formato yyyy-MM-dd
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateString)) {
+    return false;
+  }
+
+  // Verificar que sea una fecha válida
+  const date = new Date(dateString + "T00:00:00");
+  if (isNaN(date.getTime())) {
+    return false;
+  }
+
+  // Verificar que no sea futura (para birthday y datePaid)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (date > today) {
+    return false;
+  }
+
+  return true;
+};
+```
+
+#### 📚 Resumen de Formatos
+
+| Tipo de Campo  | Formato al Enviar  | Formato al Recibir | Ejemplo                      |
+| -------------- | ------------------ | ------------------ | ---------------------------- |
+| `birthday`     | `yyyy-MM-dd`       | `yyyy-MM-dd`       | `"1990-03-15"`               |
+| `birthdayDate` | `yyyy-MM-dd`       | `yyyy-MM-dd`       | `"2024-03-15"`               |
+| `datePaid`     | `yyyy-MM-dd`       | `yyyy-MM-dd`       | `"2024-12-15"`               |
+| `createdAt`    | N/A (solo lectura) | ISO 8601           | `"2024-12-15T10:30:00.000Z"` |
+| `updatedAt`    | N/A (solo lectura) | ISO 8601           | `"2024-12-15T10:30:00.000Z"` |
+
+#### ✅ Checklist para el Frontend
+
+- [ ] Todas las fechas DATEONLY se envían en formato `yyyy-MM-dd`
+- [ ] No se convierten timezones manualmente
+- [ ] Los inputs de fecha usan `type="date"` (que ya genera formato correcto)
+- [ ] Las fechas recibidas se formatean solo para mostrar, no para enviar
+- [ ] Se valida el formato antes de enviar (opcional pero recomendado)
+- [ ] Los timestamps se formatean para mostrar en zona horaria local
+- [ ] Se usa date-fns para formateo y manipulación de fechas
+
+---
+
+### 19. Estructura de Componentes
+
+#### Componentes de UI (shadcn/ui)
+
+```
+components/ui/
+  button.tsx
+  input.tsx
+  card.tsx
+  ...
+```
+
+#### Componentes de Layout
+
+```
+components/layout/
+  Header.tsx
+  Sidebar.tsx
+  Footer.tsx
+  Navbar.tsx
+```
+
+#### Componentes de Dominio
+
+```
+components/
+  MemberCard.tsx
+  GroupCard.tsx
+  PaymentSummary.tsx
+  ...
+```
+
+---
+
+### 20. Path Aliases
+
+#### Configuración en `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/types/*": ["./types/*"],
+      "@/stores/*": ["./stores/*"]
+    }
+  }
+}
+```
+
+#### Uso
+
+```typescript
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import type { Member } from "@/types/member";
+```
+
+---
+
+## 📝 Checklist de Cumplimiento
+
+Antes de hacer commit, verificar:
+
+- [ ] No hay uso de `any` o tipos genéricos sin especificar
+- [ ] `page.tsx` solo actúa como anfitrión (sin lógica compleja)
+- [ ] Componentes están en sus carpetas correspondientes
+- [ ] Errores están manejados correctamente
+- [ ] Loading states implementados
+- [ ] Validaciones en formularios
+- [ ] Tipos TypeScript definidos
+- [ ] Imports ordenados y usando path aliases
+- [ ] Código formateado (Prettier/ESLint)
+- [ ] Accesibilidad básica implementada
+- [ ] Variables de entorno configuradas
+- [ ] Documentación actualizada si es necesario
+
+---
+
+## 🚫 Anti-patrones a Evitar
+
+1. **NO** usar `any` bajo ninguna circunstancia
+2. **NO** poner lógica compleja en `page.tsx`
+3. **NO** crear componentes monolíticos (dividir en componentes más pequeños)
+4. **NO** hacer llamadas a API directamente en componentes (usar hooks o servicios)
+5. **NO** ignorar errores de TypeScript
+6. **NO** commitear código comentado o console.logs
+7. **NO** crear dependencias circulares
+8. **NO** duplicar código (crear utilidades o componentes reutilizables)
+9. **NO** hardcodear valores (usar constantes o variables de entorno)
+10. **NO** crear componentes sin tipos TypeScript
+
+---
+
+## 📚 Referencias
+
+- [Documentación de Next.js](https://nextjs.org/docs)
+- [Documentación de React](https://react.dev)
+- [Documentación de TypeScript](https://www.typescriptlang.org/docs)
+- [Documentación de shadcn/ui](https://ui.shadcn.com)
+- [Documentación de Tailwind CSS](https://tailwindcss.com/docs)
+- [Documentación de la API](./api-routes/API_DOCUMENTATION.md)
+- [Guía de Manejo de Fechas](./DATE_HANDLING_FRONTEND.md)
+
+---
+
+**Última actualización**: 2024-12-09

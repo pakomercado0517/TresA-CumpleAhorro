@@ -1,0 +1,363 @@
+---
+alwaysApply: true
+---
+
+# Contexto del Proyecto - Tanda Cumpleañera Frontend
+
+## 📋 Descripción General
+
+Sistema de gestión de tandas de cumpleaños que permite al administrador visualizar, gestionar y compartir información relacionada a pagos y cumpleaños. La aplicación debe ser **mobile-first**, rápida, minimalista y fácil de usar.
+
+### Objetivo Principal
+
+Implementar la interfaz del sistema de gestión de la tanda de cumpleaños, permitiendo al administrador:
+
+- Visualizar información de grupos, miembros y eventos
+- Gestionar pagos y comprobantes
+- Compartir información de cumpleaños (vista pública)
+- Generar PDFs y códigos QR
+
+---
+
+## 🛠️ Stack Tecnológico
+
+### Core
+
+- **Next.js 16+** (App Router)
+- **React 19+**
+- **TypeScript** (strict mode, sin `any`)
+- **Tailwind CSS 4**
+
+### UI/UX
+
+- **shadcn/ui** - Componentes de UI
+- **Radix UI** - Componentes accesibles
+- **date-fns** - Manipulación de fechas
+- **Sonner** - Notificaciones toast
+
+### Estado y Datos
+
+- **Zustand** - Estado global simple
+- **TanStack Query** - Estado del servidor (cache, sincronización)
+- **React Hook Form + Zod** - Formularios y validación
+
+### Utilidades
+
+- **QRCode.react** - Generación de códigos QR
+- **jsPDF** - Generación de PDFs
+- **Axios o fetch** - Consumo de API
+
+---
+
+## 📁 Estructura del Proyecto
+
+### Estructura de Carpetas
+
+```
+app/
+  (auth)/
+    login/
+      page.tsx              # Solo anfitrión
+      components/            # Componentes específicos
+  (dashboard)/
+    dashboard/
+      page.tsx              # Solo anfitrión
+      components/            # Componentes específicos
+    groups/
+      page.tsx
+      components/
+    members/
+      page.tsx
+      components/
+    events/
+      page.tsx
+      components/
+components/
+  ui/                       # shadcn/ui components
+  layout/                   # Header, Sidebar, Navbar
+hooks/                      # Hooks personalizados
+lib/                        # Utilidades
+stores/                     # Zustand stores
+types/                      # Tipos TypeScript
+docs/                       # Documentación
+```
+
+### Regla del `page.tsx`
+
+- **SOLO actúa como anfitrión** - NO contiene lógica compleja
+- **NO contiene estados complejos**
+- Solo importa y renderiza componentes
+
+---
+
+## 🎯 Reglas Principales del Proyecto
+
+### 1. Tipado Robusto
+
+- ❌ **PROHIBIDO**: `any`, tipos genéricos sin especificar
+- ✅ **OBLIGATORIO**: Tipos explícitos para todo
+- ✅ Usar `unknown` en lugar de `any` cuando sea necesario
+- ✅ Validar tipos con type guards
+
+### 2. Modularización
+
+- Cada ruta tiene su carpeta `components/` con componentes específicos
+- Componentes globales en `components/` (raíz)
+- Componentes UI base en `components/ui/`
+- Hooks personalizados en `hooks/`
+- Utilidades en `lib/`
+
+### 3. Documentación
+
+- Toda la documentación en `/docs`
+- NO crear archivos de documentación en la raíz (excepto README.md)
+
+### 4. Convenciones de Nombres
+
+- **Componentes**: PascalCase (`UserCard.tsx`)
+- **Hooks/Utilidades**: camelCase (`useAuth.ts`, `formatDate.ts`)
+- **Tipos**: PascalCase (`Member.ts`)
+- **Constantes**: UPPER_SNAKE_CASE (`API_BASE_URL`)
+- **Carpetas**: kebab-case (`user-profile/`)
+
+### 5. Manejo de Estado
+
+- **Zustand**: Estado global de la aplicación
+- **TanStack Query**: Estado del servidor
+- **useState/useReducer**: Estado local del componente
+
+### 6. Manejo de Errores
+
+- Siempre manejar errores de API
+- Mostrar mensajes amigables
+- Usar try-catch en funciones async
+- Implementar Error Boundaries
+
+---
+
+## 📅 Manejo de Fechas (CRÍTICO)
+
+### Formatos
+
+- **Enviar al backend**: `yyyy-MM-dd` (ejemplo: `"2024-12-15"`)
+- **Recibir del backend**:
+  - Fechas DATEONLY: `yyyy-MM-dd`
+  - Timestamps: ISO 8601 (`"2024-12-15T10:30:00.000Z"`)
+
+### Campos de Fechas
+
+- `birthday` (Miembros) - Formato: `yyyy-MM-dd`
+- `birthdayDate` (Eventos) - Formato: `yyyy-MM-dd`
+- `datePaid` (Pagos) - Formato: `yyyy-MM-dd`
+- `createdAt`, `updatedAt` - Solo lectura, ISO 8601
+
+### Reglas Importantes
+
+- ✅ **HACER**: Usar formato `yyyy-MM-dd`, enviar como strings, usar `type="date"` en inputs
+- ❌ **NO HACER**: Convertir timezones manualmente, enviar objetos Date, incluir hora en DATEONLY
+
+### Utilidades Recomendadas
+
+- **date-fns** (recomendado) para formateo
+- Inputs HTML `type="date"` generan formato correcto automáticamente
+
+> **Referencia completa**: Ver `docs/DATE_HANDLING_FRONTEND.md`
+
+---
+
+## 🔌 API y Endpoints
+
+### Base URL
+
+- Variable de entorno: `NEXT_PUBLIC_API_URL`
+- Formato: `http://localhost:3001/api` (desarrollo)
+
+### Autenticación
+
+- **POST** `/api/auth/register` - Registro de usuarios
+- **POST** `/api/auth/login` - Login (retorna JWT token)
+
+### Grupos
+
+- **GET** `/api/groups` - Listar grupos del usuario
+- **POST** `/api/groups` - Crear grupo
+- **GET** `/api/groups/:id` - Obtener grupo
+- **PUT** `/api/groups/:id` - Actualizar grupo
+- **DELETE** `/api/groups/:id` - Eliminar grupo
+
+### Miembros
+
+- **GET** `/api/groups/:groupId/members` - Listar miembros
+- **POST** `/api/groups/:groupId/members` - Crear miembro
+- **GET** `/api/members/:id` - Obtener miembro
+- **PUT** `/api/members/:id` - Actualizar miembro
+- **DELETE** `/api/members/:id` - Eliminar miembro
+
+### Eventos
+
+- **GET** `/api/groups/:groupId/events` - Listar eventos
+- **POST** `/api/groups/:groupId/events/generate` - Generar eventos del año
+- **GET** `/api/events/:eventId` - Obtener evento con información del miembro
+
+### Pagos
+
+- **GET** `/api/events/:eventId/payments` - Listar pagos con resumen
+- **POST** `/api/events/:eventId/payments` - Crear pago
+- **GET** `/api/payments/:id` - Obtener pago
+- **PUT** `/api/payments/:id` - Actualizar pago
+- **DELETE** `/api/payments/:id` - Eliminar pago
+
+### Autenticación en Requests
+
+- Todos los endpoints excepto `/api/auth/*` requieren header:
+  ```
+  Authorization: Bearer {token}
+  ```
+
+### Manejo de Errores API
+
+- Estructura: `{ error: string | string[] }`
+- Códigos: 200, 201, 400, 401, 404, 409, 500
+
+> **Referencia completa**: Ver `docs/api-routes/API_DOCUMENTATION.md`
+
+---
+
+## 🎨 Vistas del Sistema
+
+### 1. Login
+
+- Email y password
+- Validaciones básicas
+- Redirección al dashboard
+
+### 2. Dashboard
+
+- Widget "Cumpleaños próximos"
+- Widget "Pagos del día"
+- Widget "Grupos creados"
+- Listado cronológico de cumpleaños
+
+### 3. Gestión de Grupos
+
+- Lista de grupos
+- Crear grupo (modal)
+- Editar grupo
+- Eliminar grupo (con confirmación)
+
+### 4. Gestión de Miembros
+
+- Lista de miembros por grupo
+- CRUD completo
+- Campos: nombre, teléfono, fecha de nacimiento, foto (opcional)
+
+### 5. Vista de Cumpleaños (Evento)
+
+- Foto + nombre del cumpleañero
+- Fecha y monto por persona
+- Totales (esperado, recibido, barra de progreso)
+- Tabla de miembros con estado de pago
+- Botones: Compartir WhatsApp, Ver vista pública, Descargar PDF
+
+### 6. Vista Pública (sin login)
+
+- Información del cumpleañero
+- Monto y totales recolectados
+- Progreso
+- Cuenta bancaria
+- QR con enlace
+- Responsive obligatorio
+
+---
+
+## 🧩 Componentes UI Requeridos
+
+- Navbar
+- Sidebar
+- Cards de resumen
+- Modales (shadcn/ui)
+- Tablas
+- Inputs, selects, datepickers
+- Progress bar
+- File uploader (Cloudinary preset)
+- Botón "Compartir por WhatsApp"
+
+---
+
+## 📦 Estados Globales (Zustand)
+
+- Usuario autenticado
+- Grupo seleccionado
+- Miembros cargados
+- Eventos cargados
+- Pagos del evento actual
+
+---
+
+## ✅ Checklist de Cumplimiento
+
+Antes de hacer commit:
+
+- [ ] No hay uso de `any` o tipos genéricos sin especificar
+- [ ] `page.tsx` solo actúa como anfitrión
+- [ ] Componentes en sus carpetas correspondientes
+- [ ] Errores manejados correctamente
+- [ ] Loading states implementados
+- [ ] Validaciones en formularios
+- [ ] Tipos TypeScript definidos
+- [ ] Imports ordenados y usando path aliases
+- [ ] Código formateado (Prettier/ESLint)
+- [ ] Accesibilidad básica implementada
+- [ ] Variables de entorno configuradas
+- [ ] Fechas en formato `yyyy-MM-dd`
+
+---
+
+## 🚫 Anti-patrones a Evitar
+
+1. NO usar `any` bajo ninguna circunstancia
+2. NO poner lógica compleja en `page.tsx`
+3. NO crear componentes monolíticos
+4. NO hacer llamadas a API directamente en componentes (usar hooks)
+5. NO ignorar errores de TypeScript
+6. NO commitear código comentado o console.logs
+7. NO crear dependencias circulares
+8. NO duplicar código
+9. NO hardcodear valores
+10. NO crear componentes sin tipos TypeScript
+
+---
+
+## 📚 Referencias de Documentación
+
+- **Reglas del Proyecto**: `docs/PROJECT_RULES.md`
+- **Documentación de la API**: `docs/api-routes/API_DOCUMENTATION.md`
+- **Manejo de Fechas**: `docs/DATE_HANDLING_FRONTEND.md`
+- **PRD**: `PRD.md` (raíz del proyecto)
+
+---
+
+## 🔑 Path Aliases Configurados
+
+```typescript
+@/*              → ./*
+@/components/*   → ./components/*
+@/lib/*          → ./lib/*
+@/hooks/*        → ./hooks/*
+@/types/*        → ./types/*
+@/stores/*       → ./stores/*
+```
+
+---
+
+## 🎯 Criterios UX
+
+- **Mobile first** - Diseño responsive desde móvil
+- **Flujos cortos** - Minimizar pasos del usuario
+- **Colores claros y consistentes**
+- **Tipografía legible**
+- **Botones grandes para móviles**
+
+---
+
+**Última actualización**: 2024-12-09
