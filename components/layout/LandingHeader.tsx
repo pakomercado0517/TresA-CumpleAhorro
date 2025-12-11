@@ -1,9 +1,10 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export function LandingHeader(): JSX.Element {
+export function LandingHeader(): React.ReactNode {
   return (
     <header className="flex items-center justify-between px-4 py-4 md:px-8 lg:px-12">
       <div className="flex items-center gap-2">
@@ -16,10 +17,7 @@ export function LandingHeader(): JSX.Element {
       </div>
       <div className="flex items-center gap-3">
         <Link href="/login">
-          <Button
-            variant="ghost"
-            className="text-gray-700 hover:bg-gray-100"
-          >
+          <Button variant="ghost" className="text-gray-700 hover:bg-gray-100">
             Inicia sesión
           </Button>
         </Link>
@@ -32,4 +30,3 @@ export function LandingHeader(): JSX.Element {
     </header>
   );
 }
-

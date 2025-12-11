@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +18,7 @@ const forgotPasswordSchema = z.object({
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
-export function ForgotPasswordForm(): JSX.Element {
+export function ForgotPasswordForm(): React.ReactNode {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
@@ -26,13 +26,13 @@ export function ForgotPasswordForm(): JSX.Element {
   const {
     register,
     handleSubmit,
-    watch,
+    // watch,
     formState: { errors },
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
   });
 
-  const emailValue = watch("email");
+  // const emailValue = watch("email");
 
   const onSubmit = async (data: ForgotPasswordFormData): Promise<void> => {
     setIsLoading(true);
@@ -43,9 +43,7 @@ export function ForgotPasswordForm(): JSX.Element {
       await forgotPassword({ email: data.email });
       setSuccess(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al enviar el email"
-      );
+      setError(err instanceof Error ? err.message : "Error al enviar el email");
     } finally {
       setIsLoading(false);
     }
@@ -98,4 +96,3 @@ export function ForgotPasswordForm(): JSX.Element {
     </form>
   );
 }
-

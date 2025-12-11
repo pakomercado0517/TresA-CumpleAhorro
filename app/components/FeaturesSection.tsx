@@ -1,9 +1,10 @@
 "use client";
 
+import React from "react";
 import { Users, Calendar, DollarSign, Share2 } from "lucide-react";
 
 interface Feature {
-  icon: JSX.Element;
+  icon: React.ReactNode;
   title: string;
   description: string;
 }
@@ -35,7 +36,7 @@ const features: Feature[] = [
   },
 ];
 
-export function FeaturesSection(): JSX.Element {
+export function FeaturesSection(): React.ReactNode {
   return (
     <section className="px-4 py-12 md:py-16 lg:py-20 bg-white">
       <div className="mx-auto max-w-6xl">
@@ -64,4 +65,3 @@ export function FeaturesSection(): JSX.Element {
     </section>
   );
 }
-

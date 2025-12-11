@@ -1,14 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SummaryCards } from "./SummaryCards";
 import { BirthdayList } from "./BirthdayList";
 import { BirthdayTable } from "./BirthdayTable";
-import { getGroups, getGroupEvents, getEventPayments } from "@/lib/api-dashboard";
-import { calculateDashboardSummary, getPaymentStatus } from "@/lib/dashboard-utils";
-import type { BirthdayListItem, Group, Event, Payment } from "@/types/dashboard";
+import {
+  getGroups,
+  getGroupEvents,
+  getEventPayments,
+  getEvent,
+} from "@/lib/api-dashboard";
+import {
+  calculateDashboardSummary,
+  getPaymentStatus,
+} from "@/lib/dashboard-utils";
+import type {
+  BirthdayListItem,
+  Group,
+  Event,
+  Payment,
+} from "@/types/dashboard";
 
-export function DashboardContent(): JSX.Element {
+export function DashboardContent(): React.ReactNode {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [summary, setSummary] = useState({
     upcomingBirthdays: 0,
@@ -62,7 +75,7 @@ export function DashboardContent(): JSX.Element {
           try {
             const paymentsData = await getEventPayments(event.id);
             allPayments.push(...paymentsData.payments);
-            
+
             // Calcular total de pagos del día
             const todayPayments = paymentsData.payments.filter(
               (p) => p.datePaid === todayStr
@@ -72,7 +85,10 @@ export function DashboardContent(): JSX.Element {
               0
             );
           } catch (error) {
-            console.error(`Error loading payments for event ${event.id}:`, error);
+            console.error(
+              `Error loading payments for event ${event.id}:`,
+              error
+            );
           }
         }
 
@@ -148,4 +164,3 @@ export function DashboardContent(): JSX.Element {
     </div>
   );
 }
-

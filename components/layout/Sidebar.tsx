@@ -1,8 +1,17 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Wallet, User, Settings, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Wallet,
+  User,
+  Settings,
+  LogOut,
+} from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -10,7 +19,7 @@ import { cn } from "@/lib/utils";
 interface SidebarItem {
   href: string;
   label: string;
-  icon: JSX.Element;
+  icon: React.ReactNode;
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -23,6 +32,11 @@ const sidebarItems: SidebarItem[] = [
     href: "/groups",
     label: "Grupos",
     icon: <Users className="h-5 w-5" />,
+  },
+  {
+    href: "/events",
+    label: "Eventos",
+    icon: <Calendar className="h-5 w-5" />,
   },
   {
     href: "/payments",
@@ -41,7 +55,7 @@ const sidebarItems: SidebarItem[] = [
   },
 ];
 
-export function Sidebar(): JSX.Element {
+export function Sidebar(): React.ReactNode {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
@@ -74,7 +88,8 @@ export function Sidebar(): JSX.Element {
       <nav className="flex-1 p-4">
         <ul className="space-y-1">
           {sidebarItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <li key={item.href}>
                 <Link
@@ -114,4 +129,3 @@ export function Sidebar(): JSX.Element {
     </aside>
   );
 }
-

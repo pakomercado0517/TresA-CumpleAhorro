@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,7 +25,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export function LoginForm(): JSX.Element {
+export function LoginForm(): React.ReactNode {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,11 +41,13 @@ export function LoginForm(): JSX.Element {
     resolver: zodResolver(loginSchema),
   });
 
-  useEffect(() => {
+  // Deriva el mensaje de éxito del parámetro de URL sin usar useEffect
+  const resetSuccessMessage = useMemo<string | null>(() => {
     const resetParam = searchParams.get("reset");
     if (resetParam === "success") {
-      setSuccess("Tu contraseña ha sido restablecida exitosamente. Inicia sesión con tu nueva contraseña.");
+      return "Tu contraseña ha sido restablecida exitosamente. Inicia sesión con tu nueva contraseña.";
     }
+    return null;
   }, [searchParams]);
 
   const onSubmit = async (data: LoginFormData): Promise<void> => {
@@ -61,18 +63,19 @@ export function LoginForm(): JSX.Element {
       // No necesitamos resetear isLoading aquí porque la redirección
       // desmontará el componente. Si hay un error, se captura abajo.
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al iniciar sesión"
-      );
+      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
       setIsLoading(false);
     }
   };
 
+  // Combina el mensaje de éxito del estado con el mensaje derivado de la URL
+  const displaySuccess = success || resetSuccessMessage;
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {success && (
+      {displaySuccess && (
         <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
-          {success}
+          {displaySuccess}
         </div>
       )}
       {error && (
@@ -98,10 +101,7 @@ export function LoginForm(): JSX.Element {
       </div>
 
       <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="text-sm font-medium text-gray-700"
-        >
+        <label htmlFor="password" className="text-sm font-medium text-gray-700">
           Contraseña
         </label>
         <div className="relative">
@@ -116,7 +116,9 @@ export function LoginForm(): JSX.Element {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={
+              showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
           >
             {showPassword ? (
               <EyeOff className="h-5 w-5" />
@@ -139,14 +141,9 @@ export function LoginForm(): JSX.Element {
         </Link>
       </div>
 
-      <Button
-        type="submit"
-        disabled={isLoading}
-        className="w-full font-medium"
-      >
+      <Button type="submit" disabled={isLoading} className="w-full font-medium">
         {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
       </Button>
     </form>
   );
 }
-

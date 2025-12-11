@@ -1,10 +1,17 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ResetPasswordForm } from "./ResetPasswordForm";
 
-export function ResetPasswordContent(): JSX.Element {
+export function ResetPasswordContent(): React.ReactNode {
   return (
     <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center px-4 py-8 md:px-8">
       <Card className="w-full max-w-md shadow-lg md:max-w-lg">
@@ -32,4 +39,3 @@ export function ResetPasswordContent(): JSX.Element {
     </div>
   );
 }
-

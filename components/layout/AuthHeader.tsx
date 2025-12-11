@@ -1,9 +1,10 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export function AuthHeader(): JSX.Element {
+export function AuthHeader(): React.ReactNode {
   return (
     <header className="flex items-center justify-between px-4 py-4 md:px-8">
       <div className="flex items-center gap-2">
@@ -25,4 +26,3 @@ export function AuthHeader(): JSX.Element {
     </header>
   );
 }
-

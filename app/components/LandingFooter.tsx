@@ -1,8 +1,9 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 
-export function LandingFooter(): JSX.Element {
+export function LandingFooter(): React.ReactNode {
   return (
     <footer className="px-4 py-8 md:py-12 border-t border-gray-200 bg-white">
       <div className="mx-auto max-w-6xl">
@@ -37,4 +38,3 @@ export function LandingFooter(): JSX.Element {
     </footer>
   );
 }
-

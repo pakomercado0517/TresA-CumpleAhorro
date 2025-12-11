@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -8,7 +8,9 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps): JSX.Element | null {
+export function ProtectedRoute({
+  children,
+}: ProtectedRouteProps): React.ReactNode | null {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, token } = useAuthStore();
@@ -61,4 +63,3 @@ export function ProtectedRoute({ children }: ProtectedRouteProps): JSX.Element |
 
   return <>{children}</>;
 }
-

@@ -1,10 +1,11 @@
+import React from "react";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { DashboardContent } from "./components/DashboardContent";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-export default function DashboardPage(): JSX.Element {
+export default function DashboardPage(): React.ReactNode {
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -18,4 +19,3 @@ export default function DashboardPage(): JSX.Element {
     </ProtectedRoute>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,7 +16,10 @@ const registerSchema = z
       .string()
       .min(2, "El nombre debe tener al menos 2 caracteres")
       .max(100, "El nombre no puede exceder 100 caracteres")
-      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, "El nombre solo puede contener letras y espacios"),
+      .regex(
+        /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+        "El nombre solo puede contener letras y espacios"
+      ),
     email: z
       .string()
       .min(1, "El email es requerido")
@@ -39,9 +42,10 @@ const registerSchema = z
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-export function RegisterForm(): JSX.Element {
+export function RegisterForm(): React.ReactNode {
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
@@ -70,9 +74,7 @@ export function RegisterForm(): JSX.Element {
       setSuccess(true);
       setRegisteredEmail(data.email);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al crear la cuenta"
-      );
+      setError(err instanceof Error ? err.message : "Error al crear la cuenta");
       setIsLoading(false);
     }
   };
@@ -87,18 +89,16 @@ export function RegisterForm(): JSX.Element {
             <span className="font-semibold">{registeredEmail}</span>.
           </p>
           <p className="mb-4">
-            Por favor verifica tu email para activar tu cuenta. Revisa tu bandeja
-            de entrada y haz clic en el enlace de verificación.
+            Por favor verifica tu email para activar tu cuenta. Revisa tu
+            bandeja de entrada y haz clic en el enlace de verificación.
           </p>
           <p className="text-xs text-green-700">
-            ¿No recibiste el email? Revisa tu carpeta de spam o solicita un nuevo
-            enlace de verificación.
+            ¿No recibiste el email? Revisa tu carpeta de spam o solicita un
+            nuevo enlace de verificación.
           </p>
         </div>
         <Link href="/login" className="block w-full">
-          <Button className="w-full font-medium">
-            Ir al inicio de sesión
-          </Button>
+          <Button className="w-full font-medium">Ir al inicio de sesión</Button>
         </Link>
       </div>
     );
@@ -145,10 +145,7 @@ export function RegisterForm(): JSX.Element {
       </div>
 
       <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="text-sm font-medium text-gray-700"
-        >
+        <label htmlFor="password" className="text-sm font-medium text-gray-700">
           Contraseña
         </label>
         <div className="relative">
@@ -163,7 +160,9 @@ export function RegisterForm(): JSX.Element {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={
+              showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
           >
             {showPassword ? (
               <EyeOff className="h-5 w-5" />
@@ -190,13 +189,17 @@ export function RegisterForm(): JSX.Element {
             type={showConfirmPassword ? "text" : "password"}
             placeholder="Confirma tu contraseña"
             {...register("confirmPassword")}
-            className={errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
+            className={
+              errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"
+            }
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={
+              showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
           >
             {showConfirmPassword ? (
               <EyeOff className="h-5 w-5" />
@@ -206,18 +209,15 @@ export function RegisterForm(): JSX.Element {
           </button>
         </div>
         {errors.confirmPassword && (
-          <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
+          <p className="text-sm text-red-600">
+            {errors.confirmPassword.message}
+          </p>
         )}
       </div>
 
-      <Button
-        type="submit"
-        disabled={isLoading}
-        className="w-full font-medium"
-      >
+      <Button type="submit" disabled={isLoading} className="w-full font-medium">
         {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
       </Button>
     </form>
   );
 }
-

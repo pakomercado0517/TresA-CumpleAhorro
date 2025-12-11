@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,11 @@ interface BirthdayListProps {
   isLoading?: boolean;
 }
 
-function BirthdayItem({ birthday }: { birthday: BirthdayListItem }): JSX.Element {
+function BirthdayItem({
+  birthday,
+}: {
+  birthday: BirthdayListItem;
+}): React.ReactNode {
   const statusLabels = {
     paid: "Pagado",
     pending: "Pendiente",
@@ -68,7 +73,7 @@ function BirthdayItem({ birthday }: { birthday: BirthdayListItem }): JSX.Element
 export function BirthdayList({
   birthdays,
   isLoading = false,
-}: BirthdayListProps): JSX.Element {
+}: BirthdayListProps): React.ReactNode {
   if (isLoading) {
     return (
       <div className="px-4">
@@ -111,4 +116,3 @@ export function BirthdayList({
     </div>
   );
 }
-

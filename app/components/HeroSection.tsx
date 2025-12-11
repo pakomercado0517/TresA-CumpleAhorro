@@ -1,16 +1,17 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export function HeroSection(): JSX.Element {
+export function HeroSection(): React.ReactNode {
   return (
     <section className="px-4 py-12 md:py-16 lg:py-20">
       <div className="mx-auto max-w-4xl text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4 md:text-5xl lg:text-6xl">
           Gestiona tus{" "}
-          <span className="text-[#22c55e]">Tandas de Cumpleaños</span>{" "}
-          de forma sencilla
+          <span className="text-[#22c55e]">Tandas de Cumpleaños</span> de forma
+          sencilla
         </h1>
         <p className="text-lg text-gray-600 mb-8 md:text-xl lg:mb-12 max-w-2xl mx-auto">
           Organiza, gestiona y comparte las tandas de cumpleaños de tu grupo.
@@ -39,4 +40,3 @@ export function HeroSection(): JSX.Element {
     </section>
   );
 }
-

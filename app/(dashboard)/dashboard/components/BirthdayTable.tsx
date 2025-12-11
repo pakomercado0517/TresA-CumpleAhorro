@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,7 @@ interface BirthdayTableProps {
 export function BirthdayTable({
   birthdays,
   isLoading = false,
-}: BirthdayTableProps): JSX.Element {
+}: BirthdayTableProps): React.ReactNode {
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const filteredBirthdays = useMemo(() => {
@@ -74,10 +74,7 @@ export function BirthdayTable({
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="space-y-3 p-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="h-16 bg-gray-100 rounded animate-pulse"
-              />
+              <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
             ))}
           </div>
         </div>
@@ -191,4 +188,3 @@ export function BirthdayTable({
     </div>
   );
 }
-

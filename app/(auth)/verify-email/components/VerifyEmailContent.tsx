@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { verifyEmail } from "@/lib/api";
 
 type Status = "loading" | "success" | "error";
 
-export function VerifyEmailContent(): JSX.Element {
+export function VerifyEmailContent(): React.ReactNode {
   const [status, setStatus] = useState<Status>("loading");
   const [message, setMessage] = useState<string>("");
   const searchParams = useSearchParams();
@@ -106,4 +112,3 @@ export function VerifyEmailContent(): JSX.Element {
     </div>
   );
 }
-

@@ -1,9 +1,10 @@
 "use client";
 
+import React from "react";
 import { Cake, Wallet, Users } from "lucide-react";
 
 interface SummaryCardProps {
-  icon: JSX.Element;
+  icon: React.ReactNode;
   value: number | string;
   label: string;
   title?: string;
@@ -14,7 +15,7 @@ function SummaryCard({
   value,
   label,
   title,
-}: SummaryCardProps): JSX.Element {
+}: SummaryCardProps): React.ReactNode {
   return (
     <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border border-gray-200">
       {title && (
@@ -43,7 +44,7 @@ export function SummaryCards({
   paymentsToday,
   totalGroups,
   totalPaymentsToday,
-}: SummaryCardsProps): JSX.Element {
+}: SummaryCardsProps): React.ReactNode {
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat("es-MX", {
       style: "currency",
@@ -82,4 +83,3 @@ export function SummaryCards({
     </div>
   );
 }
-

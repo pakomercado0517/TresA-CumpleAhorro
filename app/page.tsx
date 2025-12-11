@@ -1,5 +1,6 @@
+import React from "react";
 import { LandingPageContent } from "./components/LandingPageContent";
 
-export default function Home(): JSX.Element {
+export default function Home(): React.ReactNode {
   return <LandingPageContent />;
 }

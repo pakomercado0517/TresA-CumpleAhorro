@@ -1,10 +1,11 @@
 "use client";
 
+import React from "react";
 import { Bell, LayoutDashboard } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import Image from "next/image";
 
-export function DashboardHeader(): JSX.Element {
+export function DashboardHeader(): React.ReactNode {
   const { user } = useAuthStore();
 
   return (
@@ -39,4 +40,3 @@ export function DashboardHeader(): JSX.Element {
     </header>
   );
 }
-

@@ -1,9 +1,10 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export function CTASection(): JSX.Element {
+export function CTASection(): React.ReactNode {
   return (
     <section className="px-4 py-12 md:py-16 lg:py-20">
       <div className="mx-auto max-w-4xl">
@@ -29,4 +30,3 @@ export function CTASection(): JSX.Element {
     </section>
   );
 }
-

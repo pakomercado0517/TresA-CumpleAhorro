@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import React from "react";
 import { resetPassword } from "@/lib/api";
 
 const resetPasswordSchema = z
@@ -29,9 +30,10 @@ const resetPasswordSchema = z
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
-export function ResetPasswordForm(): JSX.Element {
+export function ResetPasswordForm(): React.ReactNode {
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -69,7 +71,9 @@ export function ResetPasswordForm(): JSX.Element {
       router.push("/login?reset=success");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Error al restablecer la contraseña"
+        err instanceof Error
+          ? err.message
+          : "Error al restablecer la contraseña"
       );
     } finally {
       setIsLoading(false);
@@ -99,10 +103,7 @@ export function ResetPasswordForm(): JSX.Element {
       )}
 
       <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="text-sm font-medium text-gray-700"
-        >
+        <label htmlFor="password" className="text-sm font-medium text-gray-700">
           Nueva Contraseña
         </label>
         <div className="relative">
@@ -117,7 +118,9 @@ export function ResetPasswordForm(): JSX.Element {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={
+              showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
           >
             {showPassword ? (
               <EyeOff className="h-5 w-5" />
@@ -144,13 +147,17 @@ export function ResetPasswordForm(): JSX.Element {
             type={showConfirmPassword ? "text" : "password"}
             placeholder="Confirma tu nueva contraseña"
             {...register("confirmPassword")}
-            className={errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
+            className={
+              errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"
+            }
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={
+              showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
           >
             {showConfirmPassword ? (
               <EyeOff className="h-5 w-5" />
@@ -172,4 +179,3 @@ export function ResetPasswordForm(): JSX.Element {
     </form>
   );
 }
-

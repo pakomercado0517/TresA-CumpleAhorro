@@ -1,8 +1,9 @@
 "use client";
 
+import React from "react";
 import { Mail } from "lucide-react";
 
-export function LoginHeader(): JSX.Element {
+export function LoginHeader(): React.ReactNode {
   return (
     <header className="flex items-center justify-between px-4 py-4 md:px-8">
       <div className="flex items-center gap-2">
@@ -19,4 +20,3 @@ export function LoginHeader(): JSX.Element {
     </header>
   );
 }
-
