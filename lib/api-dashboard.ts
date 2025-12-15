@@ -1,52 +1,56 @@
 import type { Group, Event, Payment } from "@/types/dashboard";
-import type { ApiError } from "@/types/auth";
-import { getAuthHeaders } from "./auth";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options?: RequestInit
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  const response = await fetch(url, {
-    ...options,
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    const error = data as ApiError;
-    throw new Error(
-      Array.isArray(error.error) ? error.error.join(", ") : error.error
-    );
+  // Obtener token desde Zustand storage
+  let token: string | null = null;
+  
+  if (typeof window !== "undefined") {
+    const authStorage = localStorage.getItem("auth-storage");
+    if (authStorage) {
+      try {
+        const parsed = JSON.parse(authStorage);
+        token = parsed.state?.token || null;
+      } catch (error) {
+        console.error("Error parsing auth storage:", error);
+      }
+    }
   }
 
-  return data as T;
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      ...options?.headers,
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Error en la petición");
+  }
+
+  return response.json();
 }
 
 export async function getGroups(): Promise<Array<Group>> {
   const response = await fetchApi<{ message: string; groups: Array<Group> }>(
     "/groups"
   );
-
   return response.groups;
 }
 
 export async function getGroupEvents(groupId: number): Promise<Array<Event>> {
-  const response = await fetchApi<{
-    message: string;
-    events: Array<Event>;
-  }>(`/groups/${groupId}/events`);
+  const response = await fetchApi<{ message: string; events: Array<Event> }>(
+    `/groups/${groupId}/events`
+  );
 
-  // Log para ver estructura de eventos
-  if (response.events.length > 0) {
-    console.log(`📅 Eventos del grupo ${groupId}:`, response.events);
-    console.log(`📅 Ejemplo de evento recibido:`, response.events[0]);
-  }
+  // Log para ver estructura de eventos de grupo
+  console.log(`📅 Eventos del grupo ${groupId}:`, response.events);
 
   return response.events;
 }
@@ -83,6 +87,7 @@ export async function getEventPayments(eventId: number): Promise<{
       percentageCompleted: number;
     };
   }>(`/events/${eventId}/payments`);
+
   return response;
 }
 
@@ -154,7 +159,9 @@ export async function updateGroup(
 }
 
 export async function deleteGroup(groupId: number): Promise<void> {
-  await fetchApi<{ message: string }>(`/groups/${groupId}`, {
+  await fetchApi<{
+    message: string;
+  }>(`/groups/${groupId}`, {
     method: "DELETE",
   });
 }
@@ -172,7 +179,6 @@ export async function getAllMembers(): Promise<
     groupName?: string;
   }>
 > {
-  // Obtener todos los grupos y luego todos los miembros
   const groups = await getGroups();
   const allMembers: Array<{
     id: number;
@@ -189,15 +195,19 @@ export async function getAllMembers(): Promise<
   for (const group of groups) {
     try {
       const members = await getGroupMembers(group.id);
-      allMembers.push(
-        ...members.map((member) => ({
-          ...member,
-          groupName: group.name,
-        }))
-      );
+      const membersWithGroupName = members.map((member) => ({
+        ...member,
+        groupName: group.name,
+      }));
+      allMembers.push(...membersWithGroupName);
     } catch (error) {
       console.error(`Error loading members for group ${group.id}:`, error);
     }
+  }
+
+  // Log para ver un ejemplo de miembro recibido
+  if (allMembers.length > 0) {
+    console.log("👤 Ejemplo de miembro recibido:", allMembers[0]);
   }
 
   return allMembers;
@@ -309,6 +319,7 @@ export async function getAllEvents(): Promise<
     }
   }
 
+
   return allEvents;
 }
 
@@ -379,4 +390,44 @@ export async function generateGroupEvents(groupId: number): Promise<{
   console.log("✅ Respuesta del servidor (generateGroupEvents):", response);
 
   return response;
+}
+
+export async function createPayment(
+  eventId: number,
+  data: {
+    memberId: number;
+    amount: number;
+    datePaid: string; // Formato: "yyyy-MM-dd"
+    proofUrl?: string;
+  }
+): Promise<Payment> {
+  console.log("📤 createPayment - Datos a enviar:", {
+    eventId,
+    data,
+    url: `/events/${eventId}/payments`,
+    bodyJSON: JSON.stringify(data),
+  });
+  
+  const response = await fetchApi<{
+    message: string;
+    payment: Payment;
+  }>(`/events/${eventId}/payments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  
+  console.log("✅ createPayment - Respuesta del servidor:", response);
+  
+  return response.payment;
+}
+
+export async function deletePayment(paymentId: number): Promise<void> {
+  await fetchApi<{
+    message: string;
+  }>(`/payments/${paymentId}`, {
+    method: "DELETE",
+  });
 }

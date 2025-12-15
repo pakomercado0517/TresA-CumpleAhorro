@@ -31,11 +31,17 @@ export function MembersTableDesktop({
   isLoading = false,
 }: MembersTableDesktopProps): React.ReactNode {
   const getMemberPayment = (memberId: number): Payment | undefined => {
-    return payments.find((payment) => payment.memberId === memberId);
+    return payments.find((payment) => Number(payment.memberId) === Number(memberId));
   };
 
   const getMemberPaymentStatus = (memberId: number): boolean => {
-    return payments.some((payment) => payment.memberId === memberId);
+    const hasPaid = payments.some((payment) => Number(payment.memberId) === Number(memberId));
+    console.log(`🔍 [Desktop] Verificando pago para miembro ${memberId}:`, {
+      memberId,
+      hasPaid,
+      paymentsForMember: payments.filter(p => Number(p.memberId) === Number(memberId)),
+    });
+    return hasPaid;
   };
 
   if (isLoading) {

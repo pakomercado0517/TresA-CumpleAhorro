@@ -18,6 +18,8 @@ import {
   getEventPayments,
   getGroupMembers,
   getGroups,
+  createPayment,
+  deletePayment,
 } from "@/lib/api-dashboard";
 import type { Event, Payment } from "@/types/dashboard";
 
@@ -42,6 +44,7 @@ export function EventDetailPageContent(): React.ReactNode {
     percentageCompleted: 0,
   });
   const [amountPerPerson, setAmountPerPerson] = useState<number>(0);
+  const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
 
   useEffect(() => {
     const loadEventData = async (): Promise<void> => {
@@ -54,6 +57,9 @@ export function EventDetailPageContent(): React.ReactNode {
 
         // Obtener pagos (pueden tener información del miembro con groupId)
         const paymentsData = await getEventPayments(eventId);
+        console.log("💰 Pagos obtenidos del evento:", paymentsData.payments);
+        console.log("💰 Resumen de pagos:", paymentsData.summary);
+        
         setPayments(paymentsData.payments);
         
         // Usar expectedAmount del evento si está disponible, sino del summary
@@ -104,6 +110,8 @@ export function EventDetailPageContent(): React.ReactNode {
 
         // Obtener miembros del grupo
         const groupMembers = await getGroupMembers(groupId);
+        console.log("👥 Miembros del grupo obtenidos:", groupMembers);
+        
         setMembers(
           groupMembers.map((m) => ({
             id: m.id,
@@ -158,9 +166,86 @@ export function EventDetailPageContent(): React.ReactNode {
     memberId: number,
     paid: boolean
   ): Promise<void> => {
-    // TODO: Implementar toggle de pago (crear o eliminar pago)
-    console.log(`Toggle payment for member ${memberId}: ${paid}`);
-    // Aquí deberías llamar a la API para crear o eliminar el pago
+    if (isProcessingPayment) {
+      console.log("⏳ Ya hay un pago en proceso, ignorando...");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    
+    try {
+      console.log("🔄 Iniciando toggle de pago:", { memberId, paid, amountPerPerson });
+      
+      if (paid) {
+        // Crear pago
+        const today = new Date().toISOString().split("T")[0];
+        const paymentData = {
+          memberId,
+          amount: amountPerPerson,
+          datePaid: today,
+        };
+        
+        console.log("📤 Datos enviados para crear pago:", {
+          eventId,
+          paymentData,
+          endpoint: `/events/${eventId}/payments`,
+          method: "POST",
+        });
+        
+        const newPayment = await createPayment(eventId, paymentData);
+        console.log("✅ Pago creado exitosamente:", newPayment);
+      } else {
+        // Eliminar pago
+        const payment = payments.find((p) => p.memberId === memberId);
+        console.log("🗑️ Intentando eliminar pago:", payment);
+        
+        if (payment) {
+          await deletePayment(payment.id);
+          console.log("✅ Pago eliminado exitosamente");
+        } else {
+          console.warn("⚠️ No se encontró pago para eliminar");
+        }
+      }
+
+      // Recargar datos del evento
+      console.log("🔄 Recargando datos del evento...");
+      const paymentsData = await getEventPayments(eventId);
+      console.log("📥 Pagos actualizados:", paymentsData.payments);
+      
+      setPayments(paymentsData.payments);
+      
+      // Usar expectedAmount del evento si está disponible, sino del summary
+      const expectedAmount = event?.expectedAmount ?? paymentsData.event.expectedAmount ?? paymentsData.summary.totalExpected;
+      
+      setSummary({
+        totalPaid: paymentsData.summary.totalPaid,
+        totalExpected: expectedAmount,
+        percentageCompleted: expectedAmount > 0 
+          ? Math.round((paymentsData.summary.totalPaid / expectedAmount) * 100)
+          : 0,
+      });
+      
+      console.log("✅ Toggle de pago completado exitosamente");
+    } catch (error) {
+      console.error("❌ Error toggling payment:", error);
+      console.error("❌ Error details:", {
+        memberId,
+        paid,
+        amountPerPerson,
+        eventId,
+        error: error instanceof Error ? error.message : error,
+      });
+      
+      // Recargar datos para asegurar consistencia
+      try {
+        const paymentsData = await getEventPayments(eventId);
+        setPayments(paymentsData.payments);
+      } catch (reloadError) {
+        console.error("❌ Error recargando datos:", reloadError);
+      }
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleViewProof = (memberId: number): void => {
@@ -263,7 +348,7 @@ export function EventDetailPageContent(): React.ReactNode {
           members={members}
           payments={payments}
           onPaymentToggle={handlePaymentToggle}
-          isLoading={false}
+          isLoading={isProcessingPayment}
         />
       </div>
 
@@ -317,7 +402,7 @@ export function EventDetailPageContent(): React.ReactNode {
           onPaymentToggle={handlePaymentToggle}
           onViewProof={handleViewProof}
           onUploadProof={handleUploadProof}
-          isLoading={false}
+          isLoading={isProcessingPayment}
         />
       </main>
     </div>
