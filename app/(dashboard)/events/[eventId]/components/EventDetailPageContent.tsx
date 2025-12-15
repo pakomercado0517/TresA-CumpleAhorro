@@ -18,6 +18,7 @@ import {
   getEventPayments,
   getGroupMembers,
   getGroups,
+  getGroupEvents,
   createPayment,
   deletePayment,
 } from "@/lib/api-dashboard";
@@ -57,8 +58,6 @@ export function EventDetailPageContent(): React.ReactNode {
 
         // Obtener pagos (pueden tener información del miembro con groupId)
         const paymentsData = await getEventPayments(eventId);
-        console.log("💰 Pagos obtenidos del evento:", paymentsData.payments);
-        console.log("💰 Resumen de pagos:", paymentsData.summary);
         
         setPayments(paymentsData.payments);
         
@@ -110,7 +109,6 @@ export function EventDetailPageContent(): React.ReactNode {
 
         // Obtener miembros del grupo
         const groupMembers = await getGroupMembers(groupId);
-        console.log("👥 Miembros del grupo obtenidos:", groupMembers);
         
         setMembers(
           groupMembers.map((m) => ({
@@ -126,8 +124,8 @@ export function EventDetailPageContent(): React.ReactNode {
         if (group) {
           setAmountPerPerson(group.amountPerBirthday);
         }
-      } catch (error) {
-        console.error("Error loading event data:", error);
+      } catch {
+        // Handle error silently or show user-friendly message
       } finally {
         setIsLoading(false);
       }
@@ -140,17 +138,14 @@ export function EventDetailPageContent(): React.ReactNode {
 
   const handleEditEvent = (): void => {
     // TODO: Implementar edición de evento
-    console.log("Edit event clicked");
   };
 
   const handleDownloadPDF = (): void => {
     // TODO: Implementar descarga de PDF
-    console.log("Download PDF clicked");
   };
 
   const handleViewPublic = (): void => {
     // TODO: Implementar vista pública
-    console.log("View public clicked");
   };
 
   const handleShareWhatsApp = (): void => {
@@ -174,8 +169,6 @@ export function EventDetailPageContent(): React.ReactNode {
     setIsProcessingPayment(true);
     
     try {
-      console.log("🔄 Iniciando toggle de pago:", { memberId, paid, amountPerPerson });
-      
       if (paid) {
         // Crear pago
         const today = new Date().toISOString().split("T")[0];
@@ -185,32 +178,18 @@ export function EventDetailPageContent(): React.ReactNode {
           datePaid: today,
         };
         
-        console.log("📤 Datos enviados para crear pago:", {
-          eventId,
-          paymentData,
-          endpoint: `/events/${eventId}/payments`,
-          method: "POST",
-        });
-        
-        const newPayment = await createPayment(eventId, paymentData);
-        console.log("✅ Pago creado exitosamente:", newPayment);
+        await createPayment(eventId, paymentData);
       } else {
         // Eliminar pago
         const payment = payments.find((p) => p.memberId === memberId);
-        console.log("🗑️ Intentando eliminar pago:", payment);
         
         if (payment) {
           await deletePayment(payment.id);
-          console.log("✅ Pago eliminado exitosamente");
-        } else {
-          console.warn("⚠️ No se encontró pago para eliminar");
         }
       }
 
       // Recargar datos del evento
-      console.log("🔄 Recargando datos del evento...");
       const paymentsData = await getEventPayments(eventId);
-      console.log("📥 Pagos actualizados:", paymentsData.payments);
       
       setPayments(paymentsData.payments);
       
@@ -224,24 +203,13 @@ export function EventDetailPageContent(): React.ReactNode {
           ? Math.round((paymentsData.summary.totalPaid / expectedAmount) * 100)
           : 0,
       });
-      
-      console.log("✅ Toggle de pago completado exitosamente");
-    } catch (error) {
-      console.error("❌ Error toggling payment:", error);
-      console.error("❌ Error details:", {
-        memberId,
-        paid,
-        amountPerPerson,
-        eventId,
-        error: error instanceof Error ? error.message : error,
-      });
-      
+    } catch {
       // Recargar datos para asegurar consistencia
       try {
         const paymentsData = await getEventPayments(eventId);
         setPayments(paymentsData.payments);
-      } catch (reloadError) {
-        console.error("❌ Error recargando datos:", reloadError);
+      } catch {
+        // Handle error silently
       }
     } finally {
       setIsProcessingPayment(false);
@@ -258,7 +226,6 @@ export function EventDetailPageContent(): React.ReactNode {
 
   const handleUploadProof = (memberId: number): void => {
     // TODO: Implementar subir comprobante
-    console.log(`Upload proof for member ${memberId}`);
   };
 
   if (isLoading || !event) {

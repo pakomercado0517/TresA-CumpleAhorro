@@ -12,12 +12,7 @@ import { GroupsTable } from "./GroupsTable";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { EditGroupModal } from "./EditGroupModal";
 import { DeleteGroupModal } from "./DeleteGroupModal";
-import {
-  getGroups,
-  getGroupEvents,
-  getEventPayments,
-  getGroupMembers,
-} from "@/lib/api-dashboard";
+import { getGroupsOptimized } from "@/lib/api-dashboard";
 import type { GroupListItem } from "@/types/groups";
 
 type FilterType = "all" | "active" | "completed" | "pending";
@@ -46,225 +41,126 @@ export function GroupsPageContent(): React.ReactNode {
     try {
       setIsLoading(true);
 
-      // Obtener grupos
-      const groupsData = await getGroups();
+      /**
+       * OPTIMIZACIÓN: Petición única para obtener toda la información de grupos
+       *
+       * Se utiliza GET /api/groups?limit=10 para obtener en una sola petición:
+       * - Información básica de los grupos (id, name, amountPerBirthday, etc.)
+       * - Estadísticas calculadas (memberCount, eventCount, totalExpected, totalPaid)
+       * - Array completo de miembros (members[])
+       * - Array completo de eventos (events[]) con totalPaid por evento
+       * - Array de pagos recientes (recentPayments[])
+       *
+       * El parámetro limit=10 limita la respuesta a los primeros 10 grupos.
+       * Próximamente se implementará filtrado adicional para otras opciones.
+       *
+       * Esta optimización reduce significativamente el número de peticiones HTTP:
+       * - Antes: 1 + (N × 3) peticiones (getGroups + getMembers + getEvents + getPayments por grupo)
+       * - Ahora: 1 petición única
+       *
+       * Beneficios:
+       * - Menor latencia (una sola petición HTTP)
+       * - Datos consistentes (todos obtenidos en el mismo momento)
+       * - Mejor rendimiento y escalabilidad
+       */
+      const response = await getGroupsOptimized({ limit: 10 });
+      const groupsData = response.groups;
 
-      // Para cada grupo, obtener eventos y calcular información
-      const groupItemsPromises = groupsData.map(
-        async (
-          group
-        ): Promise<{
-          item: GroupListItem;
-          totalPaid: number;
-        }> => {
-          // Validar que el grupo tenga las propiedades necesarias
-          if (
-            !group ||
-            !group.id ||
-            !group.name ||
-            group.amountPerBirthday === undefined ||
-            group.amountPerBirthday === null
-          ) {
-            // Retornar un item por defecto si el grupo no es válido
-            const year = new Date().getFullYear();
-            const paddedId = String(group?.id || 0).padStart(3, "0");
-            const groupId = `#GRP-${year}-${paddedId}`;
+      // Procesar cada grupo con los datos ya cargados
+      const groupItems: Array<GroupListItem> = groupsData.map((group) => {
+        // Calcular eventos completados
+        let completedEvents = 0;
+        let nextPaymentDate: string | null = null;
+        const eventDates: Array<string> = [];
 
-            return {
-              item: {
-                id: group?.id || 0,
-                name: group?.name || "Grupo sin nombre",
-                memberCount: 0,
-                amountPerPeriod: group?.amountPerBirthday || 0,
-                frequency: "mes",
-                progress: 0,
-                completedEvents: 0,
-                totalEvents: 0,
-                nextPaymentDate: null,
-                startDate: null,
-                totalCollected: 0,
-                status: "pending" as const,
-                groupId,
-              },
-              totalPaid: 0,
-            };
+        for (const event of group.events) {
+          eventDates.push(event.birthdayDate);
+
+          const percentageCompleted =
+            event.expectedAmount > 0
+              ? Math.round((event.totalPaid / event.expectedAmount) * 100)
+              : 0;
+
+          if (percentageCompleted >= 100) {
+            completedEvents++;
           }
 
-          try {
-            // Obtener miembros del grupo
-            const members = await getGroupMembers(group.id);
-            const memberCount = members.length;
+          // Calcular próximo pago (próximo evento sin completar)
+          if (percentageCompleted < 100) {
+            const eventDate = new Date(event.birthdayDate + "T00:00:00");
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            const events = await getGroupEvents(group.id);
-
-            // Obtener pagos para cada evento y calcular progreso
-            let completedEvents = 0;
-            let nextPaymentDate: string | null = null;
-            let totalPaidForGroup = 0;
-            let startDate: string | null = null;
-            const eventDates: Array<string> = [];
-
-            for (const event of events) {
-              try {
-                const paymentsData = await getEventPayments(event.id);
-                eventDates.push(event.birthdayDate);
-
-                if (paymentsData.summary.percentageCompleted >= 100) {
-                  completedEvents++;
-                }
-
-                // Calcular próximo pago (próximo evento sin completar)
-                if (paymentsData.summary.percentageCompleted < 100) {
-                  const eventDate = new Date(event.birthdayDate + "T00:00:00");
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-
-                  if (eventDate >= today) {
-                    if (
-                      !nextPaymentDate ||
-                      event.birthdayDate < nextPaymentDate
-                    ) {
-                      nextPaymentDate = event.birthdayDate;
-                    }
-                  }
-                }
-
-                totalPaidForGroup += paymentsData.summary.totalPaid;
-              } catch {
-                // Error al cargar pagos del evento
+            if (eventDate >= today) {
+              if (!nextPaymentDate || event.birthdayDate < nextPaymentDate) {
+                nextPaymentDate = event.birthdayDate;
               }
-            }
-
-            // Calcular fecha de inicio (primer evento)
-            if (eventDates.length > 0) {
-              const sortedDates = [...eventDates].sort();
-              startDate = sortedDates[0];
-            }
-
-            // Calcular progreso general (eventos completados / total eventos)
-            const progress =
-              events.length > 0
-                ? Math.round((completedEvents / events.length) * 100)
-                : 0;
-
-            // Determinar estado del grupo
-            let status: "active" | "pending" | "completed";
-            if (progress === 100) {
-              status = "completed";
-            } else if (progress > 0) {
-              status = "active";
-            } else {
-              status = "pending";
-            }
-
-            // Determinar frecuencia de pago basado en el monto
-            // Esto es una aproximación, podría mejorarse con datos reales
-            const frequency =
-              group.amountPerBirthday >= 500 ? "quincena" : "mes";
-
-            // Generar ID formateado (#GRP-YYYY-XXX)
-            const year = new Date().getFullYear();
-            const paddedId = String(group.id).padStart(3, "0");
-            const groupId = `#GRP-${year}-${paddedId}`;
-
-            return {
-              item: {
-                id: group.id,
-                name: group.name,
-                memberCount: memberCount,
-                amountPerPeriod: group.amountPerBirthday,
-                frequency,
-                progress,
-                completedEvents,
-                totalEvents: events.length,
-                nextPaymentDate,
-                startDate,
-                totalCollected: totalPaidForGroup,
-                status,
-                groupId,
-              },
-              totalPaid: totalPaidForGroup,
-            };
-          } catch {
-            // Intentar obtener al menos los miembros para mostrar el conteo
-            try {
-              const members = await getGroupMembers(group.id);
-              const year = new Date().getFullYear();
-              const paddedId = String(group.id).padStart(3, "0");
-              const groupId = `#GRP-${year}-${paddedId}`;
-
-              return {
-                item: {
-                  id: group.id,
-                  name: group.name || "Grupo sin nombre",
-                  memberCount: members.length,
-                  amountPerPeriod: group.amountPerBirthday || 0,
-                  frequency: "mes",
-                  progress: 0,
-                  completedEvents: 0,
-                  totalEvents: 0,
-                  nextPaymentDate: null,
-                  startDate: null,
-                  totalCollected: 0,
-                  status: "pending" as const,
-                  groupId,
-                },
-                totalPaid: 0,
-              };
-            } catch {
-              const year = new Date().getFullYear();
-              const paddedId = String(group?.id || 0).padStart(3, "0");
-              const groupId = `#GRP-${year}-${paddedId}`;
-
-              return {
-                item: {
-                  id: group?.id || 0,
-                  name: group?.name || "Grupo sin nombre",
-                  memberCount: 0,
-                  amountPerPeriod: group?.amountPerBirthday || 0,
-                  frequency: "mes",
-                  progress: 0,
-                  completedEvents: 0,
-                  totalEvents: 0,
-                  nextPaymentDate: null,
-                  startDate: null,
-                  totalCollected: 0,
-                  status: "pending" as const,
-                  groupId,
-                },
-                totalPaid: 0,
-              };
             }
           }
         }
+
+        // Calcular fecha de inicio (primer evento)
+        const startDate =
+          eventDates.length > 0 ? [...eventDates].sort()[0] : null;
+
+        // Calcular progreso general (eventos completados / total eventos)
+        const progress =
+          group.eventCount > 0
+            ? Math.round((completedEvents / group.eventCount) * 100)
+            : 0;
+
+        // Determinar estado del grupo
+        let status: "active" | "pending" | "completed";
+        if (progress === 100) {
+          status = "completed";
+        } else if (progress > 0) {
+          status = "active";
+        } else {
+          status = "pending";
+        }
+
+        // Determinar frecuencia de pago basado en el monto
+        const frequency = group.amountPerBirthday >= 500 ? "quincena" : "mes";
+
+        // Generar ID formateado (#GRP-YYYY-XXX)
+        const year = new Date().getFullYear();
+        const paddedId = String(group.id).padStart(3, "0");
+        const groupId = `#GRP-${year}-${paddedId}`;
+
+        return {
+          id: group.id,
+          name: group.name,
+          memberCount: group.memberCount,
+          amountPerPeriod: group.amountPerBirthday,
+          frequency,
+          progress,
+          completedEvents,
+          totalEvents: group.eventCount,
+          nextPaymentDate,
+          startDate,
+          totalCollected: group.totalPaid,
+          status,
+          groupId,
+        };
+      });
+
+      // Calcular totales
+      const totalCollectedAmount = groupsData.reduce(
+        (sum, group) => sum + group.totalPaid,
+        0
       );
 
-      const results = await Promise.all(groupItemsPromises);
-      const items = results.map((result) => result.item);
-      const total = results.reduce((sum, result) => sum + result.totalPaid, 0);
-
-      // Filtrar items inválidos (sin name o groupId válidos)
-      const validItems = items.filter(
-        (item) =>
-          item.name &&
-          typeof item.name === "string" &&
-          item.name.trim() !== "" &&
-          item.groupId &&
-          typeof item.groupId === "string" &&
-          item.groupId.trim() !== ""
-      );
-
-      setGroupListItems(validItems);
-      setTotalCollected(total);
-
-      // Calcular próxima fecha de cobro (la más próxima entre todos los grupos)
-      const nextDates = items
+      // Calcular próxima fecha de cobro (la más cercana de todos los grupos)
+      const nextDates = groupItems
         .map((item) => item.nextPaymentDate)
         .filter((date): date is string => date !== null)
         .sort();
-      setNextCollectionDate(nextDates[0] || null);
+
+      setGroupListItems(groupItems);
+      setTotalCollected(totalCollectedAmount);
+      setNextCollectionDate(nextDates.length > 0 ? nextDates[0] : null);
     } catch {
-      // Error al cargar datos de grupos
+      // Handle error silently or show user-friendly message
     } finally {
       setIsLoading(false);
     }
@@ -274,64 +170,7 @@ export function GroupsPageContent(): React.ReactNode {
     loadGroupsData();
   }, []);
 
-  // Filtrar grupos según búsqueda y filtro activo
-  const filteredGroups = groupListItems.filter((group) => {
-    // Validar que las propiedades necesarias existan y sean strings no vacíos
-    if (
-      !group.name ||
-      typeof group.name !== "string" ||
-      group.name.trim() === "" ||
-      !group.groupId ||
-      typeof group.groupId !== "string" ||
-      group.groupId.trim() === ""
-    ) {
-      return false;
-    }
-
-    // Filtro de búsqueda
-    const matchesSearch =
-      group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      group.groupId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (group.startDate && group.startDate.includes(searchQuery));
-
-    // Filtro de estado
-    let matchesFilter = true;
-    if (activeFilter === "active") {
-      matchesFilter = group.status === "active";
-    } else if (activeFilter === "completed") {
-      matchesFilter = group.status === "completed";
-    } else if (activeFilter === "pending") {
-      matchesFilter = group.status === "pending";
-    }
-
-    return matchesSearch && matchesFilter;
-  });
-
-  const activeGroupsCount = groupListItems.filter(
-    (group) => group.status === "active"
-  ).length;
-
-  // Paginación
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedGroups = filteredGroups.slice(startIndex, endIndex);
-
-  const handleFilterClick = (): void => {
-    // TODO: Implementar modal de filtros avanzados
-  };
-
-  const handleExportClick = (): void => {
-    // TODO: Implementar exportación
-  };
-
-  const handleCreateGroupSuccess = (): void => {
-    // Recargar los datos sin recargar toda la página
-    // Resetear la página a 1 para mostrar el grupo recién creado
-    setCurrentPage(1);
-    // Resetear filtros para asegurar que se muestre el grupo
-    setActiveFilter("all");
-    setSearchQuery("");
-    // Recargar los datos
+  const handleCreateSuccess = (): void => {
     loadGroupsData();
   };
 
@@ -346,108 +185,179 @@ export function GroupsPageContent(): React.ReactNode {
   };
 
   const handleEditSuccess = (): void => {
-    // Recargar los datos después de editar
     loadGroupsData();
+    setSelectedGroup(null);
   };
 
   const handleDeleteSuccess = (): void => {
-    // Recargar los datos después de eliminar
     loadGroupsData();
+    setSelectedGroup(null);
   };
 
+  // Filtrar grupos por búsqueda
+  const filteredGroups = groupListItems.filter((group) => {
+    const matchesSearch = group.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesFilter =
+      activeFilter === "all" || group.status === activeFilter;
+    return matchesSearch && matchesFilter;
+  });
+
+  // Paginación
+  const totalPages = Math.ceil(filteredGroups.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedGroups = filteredGroups.slice(startIndex, endIndex);
+
+  // Calcular estadísticas para los filtros
+  const activeCount = groupListItems.filter(
+    (g) => g.status === "active"
+  ).length;
+
   return (
-    <div className="bg-[#f8faf8] pb-20 md:pb-0">
-      {/* Mobile Header */}
-      <div className="md:hidden">
+    <div className="flex flex-col h-full">
+      {/* Header Mobile */}
+      <div className="lg:hidden">
         <GroupsHeader onCreateGroup={() => setIsCreateModalOpen(true)} />
       </div>
 
-      <main className="pt-3 md:pt-6 px-4 md:px-8 md:max-w-7xl md:mx-auto">
-        {/* Desktop Header */}
-        <div className="hidden md:block">
-          <GroupsDesktopHeader
-            onCreateGroup={() => setIsCreateModalOpen(true)}
-          />
-        </div>
+      {/* Header Desktop */}
+      <div className="hidden lg:block">
+        <GroupsDesktopHeader onCreateGroup={() => setIsCreateModalOpen(true)} />
+      </div>
 
-        {/* Desktop Controls */}
-        <div className="hidden md:block">
-          <GroupsDesktopControls
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onFilterClick={handleFilterClick}
-            onExportClick={handleExportClick}
-          />
-        </div>
-
-        {/* Mobile Search and Filters */}
-        <div className="md:hidden">
-          <GroupsSearch
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
-          <GroupsFilters
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-          />
-        </div>
-
-        {/* Mobile Summary Cards */}
-        <div className="md:hidden">
+      {/* Contenido principal */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 lg:p-6 space-y-6">
+          {/* Tarjetas de resumen */}
           <GroupsSummaryCards
             totalCollected={totalCollected}
             nextCollectionDate={nextCollectionDate}
           />
-        </div>
 
-        {/* Mobile List */}
-        <div className="md:hidden">
-          <GroupsList
-            groups={filteredGroups}
-            isLoading={isLoading}
-            activeGroupsCount={activeGroupsCount}
-            onEditGroup={handleEditGroup}
-            onDeleteGroup={handleDeleteGroup}
-          />
-        </div>
+          {/* Búsqueda y filtros Mobile */}
+          <div className="lg:hidden space-y-4">
+            <GroupsSearch
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+            <GroupsFilters
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+            />
+          </div>
 
-        {/* Desktop Table */}
-        <div className="hidden md:block">
-          <GroupsTable
-            groups={paginatedGroups}
-            isLoading={isLoading}
-            currentPage={currentPage}
-            itemsPerPage={itemsPerPage}
-            totalItems={filteredGroups.length}
-            onPageChange={setCurrentPage}
-            onEditGroup={handleEditGroup}
-            onDeleteGroup={handleDeleteGroup}
-          />
-        </div>
-      </main>
+          {/* Controles Desktop */}
+          <div className="hidden lg:block">
+            <GroupsDesktopControls
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onFilterClick={() => {}}
+              onExportClick={() => {}}
+            />
+          </div>
 
-      {/* Create Group Modal */}
+          {/* Lista de grupos */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Cargando grupos...
+                </p>
+              </div>
+            </div>
+          ) : filteredGroups.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <p className="text-muted-foreground">
+                  {searchQuery || activeFilter !== "all"
+                    ? "No se encontraron grupos con los filtros aplicados"
+                    : "No hay grupos creados aún"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Vista Mobile */}
+              <div className="lg:hidden">
+                <GroupsList
+                  groups={paginatedGroups}
+                  isLoading={isLoading}
+                  activeGroupsCount={activeCount}
+                  onEditGroup={handleEditGroup}
+                  onDeleteGroup={handleDeleteGroup}
+                />
+              </div>
+
+              {/* Vista Desktop */}
+              <div className="hidden lg:block">
+                <GroupsTable
+                  groups={paginatedGroups}
+                  isLoading={isLoading}
+                  currentPage={currentPage}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={filteredGroups.length}
+                  onPageChange={setCurrentPage}
+                  onEditGroup={handleEditGroup}
+                  onDeleteGroup={handleDeleteGroup}
+                />
+              </div>
+
+              {/* Paginación */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 rounded-md border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 rounded-md border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Modales */}
       <CreateGroupModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
-        onSuccess={handleCreateGroupSuccess}
+        onSuccess={handleCreateSuccess}
       />
 
-      {/* Edit Group Modal */}
-      <EditGroupModal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        group={selectedGroup}
-        onSuccess={handleEditSuccess}
-      />
+      {selectedGroup && (
+        <>
+          <EditGroupModal
+            open={isEditModalOpen}
+            onOpenChange={setIsEditModalOpen}
+            group={selectedGroup}
+            onSuccess={handleEditSuccess}
+          />
 
-      {/* Delete Group Modal */}
-      <DeleteGroupModal
-        open={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        group={selectedGroup}
-        onSuccess={handleDeleteSuccess}
-      />
+          <DeleteGroupModal
+            open={isDeleteModalOpen}
+            onOpenChange={setIsDeleteModalOpen}
+            group={selectedGroup}
+            onSuccess={handleDeleteSuccess}
+          />
+        </>
+      )}
     </div>
   );
 }

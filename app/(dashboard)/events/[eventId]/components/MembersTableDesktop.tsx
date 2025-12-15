@@ -36,11 +36,6 @@ export function MembersTableDesktop({
 
   const getMemberPaymentStatus = (memberId: number): boolean => {
     const hasPaid = payments.some((payment) => Number(payment.memberId) === Number(memberId));
-    console.log(`🔍 [Desktop] Verificando pago para miembro ${memberId}:`, {
-      memberId,
-      hasPaid,
-      paymentsForMember: payments.filter(p => Number(p.memberId) === Number(memberId)),
-    });
     return hasPaid;
   };
 

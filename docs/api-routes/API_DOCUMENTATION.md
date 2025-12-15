@@ -50,9 +50,11 @@ Content-Type: application/json
     id: number;
     name: string;
     email: string;
+    emailVerified: boolean;
     createdAt: string;  // ISO 8601
     updatedAt: string;  // ISO 8601
-  }
+  };
+  token: string;  // JWT token para autenticación
 }
 ```
 
@@ -64,9 +66,11 @@ Content-Type: application/json
     "id": 1,
     "name": "Juan Pérez",
     "email": "juan@example.com",
+    "emailVerified": false,
     "createdAt": "2024-12-09T10:00:00.000Z",
     "updatedAt": "2024-12-09T10:00:00.000Z"
-  }
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -182,11 +186,33 @@ Content-Type: application/json
 
 ### GET /api/groups
 
-Lista todos los grupos del usuario autenticado.
+Lista todos los grupos del usuario autenticado con información completa.
+
+**⚡ Endpoint Optimizado:** Este endpoint devuelve toda la información necesaria en una sola petición, incluyendo miembros, eventos, pagos y estadísticas. Esto reduce significativamente el número de llamadas desde el frontend.
 
 **Headers:**
 ```
 Authorization: Bearer {token}
+```
+
+**Query Parameters (Opcionales):**
+```typescript
+{
+  limit?: number;           // Limitar número de grupos devueltos
+  includeMembers?: boolean; // Incluir array de miembros (default: true)
+  includeEvents?: boolean;  // Incluir array de eventos (default: true)
+  includePayments?: boolean; // Incluir pagos recientes (default: true)
+  paymentsLimit?: number;   // Limitar número de pagos recientes (default: 10)
+}
+```
+
+**Ejemplos de URLs:**
+```
+GET /api/groups                                    # Respuesta completa
+GET /api/groups?limit=5                           # Solo 5 grupos
+GET /api/groups?includeMembers=false              # Sin miembros
+GET /api/groups?paymentsLimit=3                   # Solo 3 pagos recientes
+GET /api/groups?includeEvents=false&limit=1       # Primer grupo sin eventos
 ```
 
 **Response Success (200):**
@@ -194,6 +220,7 @@ Authorization: Bearer {token}
 {
   message: string;
   groups: Array<{
+    // Información básica del grupo
     id: number;
     userId: number;
     name: string;
@@ -201,6 +228,41 @@ Authorization: Bearer {token}
     description?: string;
     createdAt: string;  // ISO 8601
     updatedAt: string;  // ISO 8601
+    
+    // Estadísticas del grupo
+    memberCount: number;        // Total de miembros en el grupo
+    eventCount: number;         // Total de eventos generados
+    totalExpected: number;      // Suma de expectedAmount de todos los eventos
+    totalPaid: number;          // Total pagado en el grupo
+    
+    // Miembros del grupo
+    members: Array<{
+      id: number;
+      name: string;
+      phone?: string;
+      birthday: string;         // Formato: "yyyy-MM-dd"
+      photoUrl?: string;
+    }>;
+    
+    // Eventos del grupo
+    events: Array<{
+      id: number;
+      memberId: number;
+      memberName: string;       // Nombre del miembro cumpleañero
+      birthdayDate: string;     // Formato: "yyyy-MM-dd"
+      expectedAmount: number;   // Monto esperado para este evento
+      totalPaid: number;        // Total pagado para este evento
+    }>;
+    
+    // Pagos recientes (últimos 10)
+    recentPayments: Array<{
+      id: number;
+      memberId: number;
+      memberName: string;       // Nombre del miembro que pagó
+      birthdayEventId: number;
+      amount: number;
+      datePaid: string;         // Formato: "yyyy-MM-dd"
+    }>;
   }>;
 }
 ```
@@ -217,7 +279,40 @@ Authorization: Bearer {token}
       "amountPerBirthday": 500,
       "description": "Grupo para celebrar cumpleaños del año 2024",
       "createdAt": "2024-12-09T10:00:00.000Z",
-      "updatedAt": "2024-12-09T10:00:00.000Z"
+      "updatedAt": "2024-12-09T10:00:00.000Z",
+      "memberCount": 5,
+      "eventCount": 5,
+      "totalExpected": 2500,
+      "totalPaid": 1500,
+      "members": [
+        {
+          "id": 1,
+          "name": "María González",
+          "phone": "1234567890",
+          "birthday": "1990-03-15",
+          "photoUrl": "https://example.com/photo.jpg"
+        }
+      ],
+      "events": [
+        {
+          "id": 1,
+          "memberId": 1,
+          "memberName": "María González",
+          "birthdayDate": "2025-03-15",
+          "expectedAmount": 500,
+          "totalPaid": 300
+        }
+      ],
+      "recentPayments": [
+        {
+          "id": 1,
+          "memberId": 2,
+          "memberName": "Juan Pérez",
+          "birthdayEventId": 1,
+          "amount": 100,
+          "datePaid": "2024-12-10"
+        }
+      ]
     }
   ]
 }
@@ -236,6 +331,12 @@ Authorization: Bearer {token}
   "error": "Usuario no autenticado"
 }
 ```
+
+**Notas:**
+- Este endpoint reemplaza la necesidad de hacer múltiples peticiones a `/api/groups/:groupId/members`, `/api/groups/:groupId/events`, y `/api/groups/:groupId/payments`
+- Los pagos recientes están limitados a los últimos 10 para mantener la respuesta manejable
+- Todas las estadísticas se calculan en tiempo real
+- Los montos están redondeados a 2 decimales
 
 ---
 

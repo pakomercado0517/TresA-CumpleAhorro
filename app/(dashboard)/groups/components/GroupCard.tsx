@@ -67,14 +67,14 @@ export function GroupCard({ group, onEdit, onDelete }: GroupCardProps): React.Re
           </div>
         </div>
         <div className="relative">
-          <button
-            type="button"
+        <button
+          type="button"
             onClick={() => setShowMenu(!showMenu)}
             className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
-            aria-label="Más opciones"
-          >
-            <MoreVertical className="h-4 w-4 md:h-6 md:w-6" />
-          </button>
+          aria-label="Más opciones"
+        >
+          <MoreVertical className="h-4 w-4 md:h-6 md:w-6" />
+        </button>
           
           {showMenu && (
             <>

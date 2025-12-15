@@ -159,9 +159,9 @@ export function MembersPageContent(): React.ReactNode {
     // Filtrar por mes de cumpleaños si está seleccionado
     if (selectedMonth) {
       try {
-        const birthday = new Date(member.birthday + "T00:00:00");
-        const memberMonth = String(birthday.getMonth() + 1).padStart(2, "0");
-        if (memberMonth !== selectedMonth) {
+      const birthday = new Date(member.birthday + "T00:00:00");
+      const memberMonth = String(birthday.getMonth() + 1).padStart(2, "0");
+      if (memberMonth !== selectedMonth) {
           return false;
         }
       } catch {

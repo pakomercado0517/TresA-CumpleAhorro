@@ -1,6 +1,7 @@
 import type { Group, Event, Payment } from "@/types/dashboard";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 async function fetchApi<T>(
   endpoint: string,
@@ -8,7 +9,7 @@ async function fetchApi<T>(
 ): Promise<T> {
   // Obtener token desde Zustand storage
   let token: string | null = null;
-  
+
   if (typeof window !== "undefined") {
     const authStorage = localStorage.getItem("auth-storage");
     if (authStorage) {
@@ -44,13 +45,120 @@ export async function getGroups(): Promise<Array<Group>> {
   return response.groups;
 }
 
+export async function getGroupsOptimized(options?: {
+  year?: number;
+  limit?: number;
+  includeMembers?: boolean;
+  includeEvents?: boolean;
+  includePayments?: boolean;
+  paymentsLimit?: number;
+}): Promise<{
+  message: string;
+  groups: Array<{
+    id: number;
+    name: string;
+    amountPerBirthday: number;
+    createdAt: string;
+    updatedAt: string;
+    memberCount: number;
+    eventCount: number;
+    totalExpected: number;
+    totalPaid: number;
+    members: Array<{
+      id: number;
+      name: string;
+      phone?: string;
+      birthday: string;
+      photoUrl?: string;
+    }>;
+    events: Array<{
+      id: number;
+      memberId: number;
+      memberName: string;
+      birthdayDate: string;
+      expectedAmount: number;
+      totalPaid: number;
+    }>;
+    recentPayments: Array<{
+      id: number;
+      memberId: number;
+      memberName: string;
+      birthdayEventId: number;
+      amount: number;
+      datePaid: string;
+    }>;
+  }>;
+}> {
+  // Construir query parameters
+  const queryParams = new URLSearchParams();
+  if (options?.year) {
+    queryParams.append("year", options.year.toString());
+  }
+  if (options?.limit) {
+    queryParams.append("limit", options.limit.toString());
+  }
+  if (options?.includeMembers === false) {
+    queryParams.append("includeMembers", "false");
+  }
+  if (options?.includeEvents === false) {
+    queryParams.append("includeEvents", "false");
+  }
+  if (options?.includePayments === false) {
+    queryParams.append("includePayments", "false");
+  }
+  if (options?.paymentsLimit) {
+    queryParams.append("paymentsLimit", options.paymentsLimit.toString());
+  }
+
+  const endpoint = queryParams.toString()
+    ? `/groups?${queryParams.toString()}`
+    : "/groups";
+
+  const response = await fetchApi<{
+    message: string;
+    groups: Array<{
+      id: number;
+      name: string;
+      amountPerBirthday: number;
+      createdAt: string;
+      updatedAt: string;
+      memberCount: number;
+      eventCount: number;
+      totalExpected: number;
+      totalPaid: number;
+      members: Array<{
+        id: number;
+        name: string;
+        phone?: string;
+        birthday: string;
+        photoUrl?: string;
+      }>;
+      events: Array<{
+        id: number;
+        memberId: number;
+        memberName: string;
+        birthdayDate: string;
+        expectedAmount: number;
+        totalPaid: number;
+      }>;
+      recentPayments: Array<{
+        id: number;
+        memberId: number;
+        memberName: string;
+        birthdayEventId: number;
+        amount: number;
+        datePaid: string;
+      }>;
+    }>;
+  }>(endpoint);
+
+  return response;
+}
+
 export async function getGroupEvents(groupId: number): Promise<Array<Event>> {
   const response = await fetchApi<{ message: string; events: Array<Event> }>(
     `/groups/${groupId}/events`
   );
-
-  // Log para ver estructura de eventos de grupo
-  console.log(`📅 Eventos del grupo ${groupId}:`, response.events);
 
   return response.events;
 }
@@ -59,9 +167,6 @@ export async function getEvent(eventId: number): Promise<Event> {
   const response = await fetchApi<{ message: string; event: Event }>(
     `/events/${eventId}`
   );
-
-  // Log para ver estructura de evento individual
-  console.log(`📅 Evento individual ${eventId}:`, response.event);
 
   return response.event;
 }
@@ -200,14 +305,9 @@ export async function getAllMembers(): Promise<
         groupName: group.name,
       }));
       allMembers.push(...membersWithGroupName);
-    } catch (error) {
-      console.error(`Error loading members for group ${group.id}:`, error);
+    } catch {
+      // Silently handle error for this group
     }
-  }
-
-  // Log para ver un ejemplo de miembro recibido
-  if (allMembers.length > 0) {
-    console.log("👤 Ejemplo de miembro recibido:", allMembers[0]);
   }
 
   return allMembers;
@@ -297,11 +397,7 @@ export async function getAllEvents(): Promise<
               member,
               groupName: group.name,
             });
-          } catch (error) {
-            console.error(
-              `Error loading member ${event.memberId} for event ${event.id}:`,
-              error
-            );
+          } catch {
             allEvents.push({
               ...event,
               groupName: group.name,
@@ -314,11 +410,10 @@ export async function getAllEvents(): Promise<
           });
         }
       }
-    } catch (error) {
-      console.error(`Error loading events for group ${group.id}:`, error);
+    } catch {
+      // Silently handle error for this group
     }
   }
-
 
   return allEvents;
 }
@@ -368,17 +463,6 @@ export async function generateGroupEvents(groupId: number): Promise<{
   eventsCreated: number;
   events: Array<Event>;
 }> {
-  // Log para ver la petición HTTP completa
-  console.log("📤 Petición HTTP para generar eventos:", {
-    method: "POST",
-    url: `/groups/${groupId}/events/generate`,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer <token>", // Token agregado automáticamente
-    },
-    body: null, // No se envía body, solo el groupId en la URL
-  });
-
   const response = await fetchApi<{
     message: string;
     eventsCreated: number;
@@ -386,8 +470,6 @@ export async function generateGroupEvents(groupId: number): Promise<{
   }>(`/groups/${groupId}/events/generate`, {
     method: "POST",
   });
-
-  console.log("✅ Respuesta del servidor (generateGroupEvents):", response);
 
   return response;
 }
@@ -401,13 +483,6 @@ export async function createPayment(
     proofUrl?: string;
   }
 ): Promise<Payment> {
-  console.log("📤 createPayment - Datos a enviar:", {
-    eventId,
-    data,
-    url: `/events/${eventId}/payments`,
-    bodyJSON: JSON.stringify(data),
-  });
-  
   const response = await fetchApi<{
     message: string;
     payment: Payment;
@@ -418,9 +493,7 @@ export async function createPayment(
     },
     body: JSON.stringify(data),
   });
-  
-  console.log("✅ createPayment - Respuesta del servidor:", response);
-  
+
   return response.payment;
 }
 
@@ -430,4 +503,76 @@ export async function deletePayment(paymentId: number): Promise<void> {
   }>(`/payments/${paymentId}`, {
     method: "DELETE",
   });
+}
+
+export async function getGroupPayments(groupId: number): Promise<{
+  message: string;
+  groupId: number;
+  groupName: string;
+  totalPayments: number;
+  totalPaid: number;
+  payments: Array<{
+    id: number;
+    birthdayEventId: number;
+    memberId: number;
+    amount: number;
+    datePaid: string;
+    proofUrl?: string;
+    createdAt: string;
+    updatedAt: string;
+    member?: {
+      id: number;
+      groupId: number;
+      name: string;
+      phone?: string;
+      birthday: string;
+      photoUrl?: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+    event: {
+      id: number;
+      birthdayDate: string;
+      expectedAmount: number;
+      memberId: number;
+      memberName: string;
+    };
+  }>;
+}> {
+  const response = await fetchApi<{
+    message: string;
+    groupId: number;
+    groupName: string;
+    totalPayments: number;
+    totalPaid: number;
+    payments: Array<{
+      id: number;
+      birthdayEventId: number;
+      memberId: number;
+      amount: number;
+      datePaid: string;
+      proofUrl?: string;
+      createdAt: string;
+      updatedAt: string;
+      member?: {
+        id: number;
+        groupId: number;
+        name: string;
+        phone?: string;
+        birthday: string;
+        photoUrl?: string;
+        createdAt: string;
+        updatedAt: string;
+      };
+      event: {
+        id: number;
+        birthdayDate: string;
+        expectedAmount: number;
+        memberId: number;
+        memberName: string;
+      };
+    }>;
+  }>(`/groups/${groupId}/payments`);
+
+  return response;
 }

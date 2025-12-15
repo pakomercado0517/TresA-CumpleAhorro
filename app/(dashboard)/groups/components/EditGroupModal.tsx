@@ -18,6 +18,7 @@ import {
   updateGroup,
   getGroupMembers,
   createMember,
+  generateGroupEvents,
 } from "@/lib/api-dashboard";
 import type { GroupListItem } from "@/types/groups";
 
@@ -240,6 +241,7 @@ export function EditGroupModal({
     setError(null);
 
     try {
+      // Crear el miembro
       await createMember(group.id, {
         name: data.name.trim(),
         phone: data.phone && data.phone.trim() !== "" ? data.phone : undefined,
@@ -250,9 +252,21 @@ export function EditGroupModal({
             : undefined,
       });
 
+      // Recargar lista de miembros
+      await loadMembers();
+      
+      // Generar eventos automáticamente si es el primer miembro o si hay nuevos miembros
+      try {
+        console.log("🎂 Generando eventos para el grupo...");
+        await generateGroupEvents(group.id);
+        console.log("✅ Eventos generados exitosamente");
+      } catch (eventError) {
+        console.log("ℹ️ No se pudieron generar eventos:", eventError);
+        // No mostrar error al usuario, es opcional
+      }
+
       resetMember();
       setShowAddMemberForm(false);
-      await loadMembers(); // Recargar lista de miembros
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error al agregar el miembro"

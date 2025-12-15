@@ -32,24 +32,8 @@ export function MembersTable({
       return paymentMemberId === currentMemberId;
     });
 
-    console.log(`🔍 Verificando pago para miembro ${memberId}:`, {
-      memberId,
-      hasPaid,
-      paymentsForMember: payments.filter(
-        (p) => Number(p.memberId) === Number(memberId)
-      ),
-      allPayments: payments.map((p) => ({
-        id: p.id,
-        memberId: p.memberId,
-        memberName: p.member?.name,
-      })),
-    });
-
     return hasPaid;
   };
-
-  console.log("👥 Miembros en tabla:", members);
-  console.log("💰 Pagos en tabla:", payments);
 
   if (isLoading) {
     return (
