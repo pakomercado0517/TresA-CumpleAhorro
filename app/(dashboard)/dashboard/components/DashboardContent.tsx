@@ -24,16 +24,16 @@ export function DashboardContent(): React.ReactNode {
 
         /**
          * OPTIMIZACIÓN: Endpoint único para obtener todo el dashboard
-         * 
+         *
          * Se utiliza GET /api/dashboard para obtener en una sola petición:
          * - Resumen calculado (upcomingBirthdays, paymentsToday, totalPaymentsToday, totalGroups)
          * - Lista de próximos cumpleaños (ordenados por fecha, limitados a 10 por defecto)
          * - Estado de pago calculado para cada evento (paid/pending/overdue)
-         * 
+         *
          * Esta optimización elimina la necesidad de múltiples peticiones:
          * - Antes: 1 (getGroups) + N (getGroupEvents) + M (getEvent) + M (getEventPayments) = 1 + N + 2M peticiones
          * - Ahora: 1 petición única con toda la información
-         * 
+         *
          * Beneficios:
          * - Reducción drástica de peticiones HTTP (de 1+N+2M a solo 1)
          * - Resumen calculado en el backend (más eficiente)
@@ -58,8 +58,8 @@ export function DashboardContent(): React.ReactNode {
         });
 
         // Mapear cumpleaños próximos a BirthdayListItem
-        const birthdayList: Array<BirthdayListItem> = dashboardData.upcomingBirthdays.map(
-          (birthday) => ({
+        const birthdayList: Array<BirthdayListItem> =
+          dashboardData.upcomingBirthdays.map((birthday) => ({
             id: birthday.id,
             eventId: birthday.eventId,
             memberId: birthday.memberId,
@@ -69,8 +69,7 @@ export function DashboardContent(): React.ReactNode {
             photoUrl: birthday.photoUrl || undefined,
             paymentStatus: birthday.paymentStatus,
             expectedAmount: birthday.expectedAmount,
-          })
-        );
+          }));
 
         setBirthdays(birthdayList);
       } catch (error) {
@@ -96,8 +95,10 @@ export function DashboardContent(): React.ReactNode {
         <BirthdayList birthdays={birthdays} isLoading={isLoading} />
       </div>
       {/* Desktop: Tabla completa */}
-      <div className="hidden md:block px-4 md:px-8">
-        <BirthdayTable birthdays={birthdays} isLoading={isLoading} />
+      <div className="hidden md:block px-4 md:px-8 w-full max-w-full">
+        <div className="w-full max-w-full overflow-x-auto">
+          <BirthdayTable birthdays={birthdays} isLoading={isLoading} />
+        </div>
       </div>
     </div>
   );

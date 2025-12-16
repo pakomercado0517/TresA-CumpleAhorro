@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { EventsHeader } from "./EventsHeader";
+import { DynamicHeader } from "@/components/layout/DynamicHeader";
+import { Calendar } from "lucide-react";
 import { EventsFilters } from "./EventsFilters";
 import { EventsList } from "./EventsList";
-import { EventsDesktopHeader } from "./EventsDesktopHeader";
+import { Plus, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { EventsDesktopFilters } from "./EventsDesktopFilters";
 import { EventsDesktopList } from "./EventsDesktopList";
 import { CreateEventModal } from "./CreateEventModal";
@@ -200,12 +202,9 @@ export function EventsPageContent(): React.ReactNode {
 
   return (
     <div className="bg-[#f8faf8] h-full flex flex-col md:h-auto md:pb-0 overflow-hidden overflow-x-hidden">
-      {/* Mobile Header */}
-      <div className="md:hidden flex-shrink-0 sticky top-0 z-30">
-        <EventsHeader
-          onSearchClick={handleSearchClick}
-          onNotificationsClick={handleNotificationsClick}
-        />
+      {/* Header */}
+      <div className="flex-shrink-0 sticky top-0 z-30">
+        <DynamicHeader title="Eventos" icon={Calendar} />
       </div>
 
       {/* Mobile Content Container */}
@@ -236,12 +235,34 @@ export function EventsPageContent(): React.ReactNode {
 
       {/* Desktop Content */}
       <main className="hidden md:block pt-6 px-8 max-w-7xl mx-auto w-full overflow-x-hidden">
-        <EventsDesktopHeader
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onNotificationsClick={handleNotificationsClick}
-          onCreateEvent={handleCreateEvent}
-        />
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-3xl font-bold text-gray-900">Eventos Activos</h1>
+            <div className="flex items-center gap-3">
+              {/* Search Bar */}
+              <div className="relative w-80">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por nombre o fecha..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* New Event Button */}
+              <button
+                type="button"
+                onClick={handleCreateEvent}
+                className="bg-gray-900 hover:bg-gray-800 text-white flex items-center gap-2 px-4 py-2 rounded-md transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+                Nuevo Evento
+              </button>
+            </div>
+          </div>
+        </div>
 
         <EventsDesktopFilters
           activeFilter={activeFilter}

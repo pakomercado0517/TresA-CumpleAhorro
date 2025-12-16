@@ -64,6 +64,7 @@ export async function getDashboard(options?: {
     photoUrl?: string | null; // Opcional
     paymentStatus: "paid" | "pending" | "overdue";
     expectedAmount: number;
+    totalPaid?: number; // Campo opcional para verificar el cálculo del paymentStatus
   }>;
 }> {
   const queryParams = new URLSearchParams();
@@ -99,6 +100,7 @@ export async function getDashboard(options?: {
       photoUrl?: string | null;
       paymentStatus: "paid" | "pending" | "overdue";
       expectedAmount: number;
+      totalPaid?: number; // Campo opcional para verificar el cálculo del paymentStatus
     }>;
   }>(endpoint);
 
@@ -784,6 +786,225 @@ export async function createMember(
     body: JSON.stringify(data),
   });
   return response.member;
+}
+
+/**
+ * Actualiza un miembro existente
+ * Utiliza PUT /api/members/:id
+ */
+export async function updateMember(
+  memberId: number,
+  data: {
+    name?: string;
+    phone?: string;
+    birthday?: string; // Formato: "yyyy-MM-dd"
+    photoUrl?: string;
+  }
+): Promise<{
+  id: number;
+  groupId: number;
+  name: string;
+  phone?: string;
+  birthday: string;
+  photoUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}> {
+  const response = await fetchApi<{
+    message: string;
+    member: {
+      id: number;
+      groupId: number;
+      name: string;
+      phone?: string;
+      birthday: string;
+      photoUrl?: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>(`/members/${memberId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return response.member;
+}
+
+/**
+ * Elimina un miembro
+ * Utiliza DELETE /api/members/:id
+ */
+export async function deleteMember(memberId: number): Promise<void> {
+  await fetchApi<{
+    message: string;
+  }>(`/members/${memberId}`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Obtiene el perfil del usuario autenticado
+ * Utiliza GET /api/users/me
+ */
+export async function getUserProfile(): Promise<{
+  id: number;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}> {
+  console.log("📡 [API] GET /api/users/me - Obteniendo perfil del usuario");
+  const response = await fetchApi<{
+    message: string;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+      emailVerified: boolean;
+      avatarUrl: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>("/users/me", {
+    method: "GET",
+  });
+  console.log("✅ [API] GET /api/users/me - Respuesta recibida:", response);
+  return response.user;
+}
+
+/**
+ * Actualiza el perfil del usuario autenticado (nombre y/o email)
+ * Utiliza PUT /api/users/me
+ */
+export async function updateUserProfile(data: {
+  name?: string;
+  email?: string;
+}): Promise<{
+  id: number;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}> {
+  console.log("📡 [API] PUT /api/users/me - Actualizando perfil");
+  console.log("📤 [API] Datos a enviar:", data);
+  const response = await fetchApi<{
+    message: string;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+      emailVerified: boolean;
+      avatarUrl: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>("/users/me", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  console.log("✅ [API] PUT /api/users/me - Respuesta recibida:", response);
+  return response.user;
+}
+
+/**
+ * Cambia la contraseña del usuario autenticado
+ * Utiliza PUT /api/users/me/password
+ */
+export async function changeUserPassword(data: {
+  oldPassword: string;
+  newPassword: string;
+}): Promise<{
+  message: string;
+}> {
+  console.log("📡 [API] PUT /api/users/me/password - Cambiando contraseña");
+  console.log("📤 [API] Datos a enviar (sin mostrar contraseñas):", {
+    oldPassword: "***",
+    newPassword: "***",
+    tieneOldPassword: !!data.oldPassword,
+    tieneNewPassword: !!data.newPassword,
+  });
+  const response = await fetchApi<{
+    message: string;
+  }>("/users/me/password", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  console.log("✅ [API] PUT /api/users/me/password - Respuesta recibida:", response);
+  return response;
+}
+
+/**
+ * Actualiza el avatar del usuario autenticado
+ * Utiliza PUT /api/users/me/avatar
+ */
+export async function updateUserAvatar(data: {
+  avatarUrl: string;
+}): Promise<{
+  id: number;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}> {
+  console.log("📡 [API] PUT /api/users/me/avatar - Actualizando avatar");
+  console.log("📤 [API] Datos a enviar:", data);
+  const response = await fetchApi<{
+    message: string;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+      emailVerified: boolean;
+      avatarUrl: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>("/users/me/avatar", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  console.log("✅ [API] PUT /api/users/me/avatar - Respuesta recibida:", response);
+  return response.user;
+}
+
+/**
+ * Actualiza las preferencias del usuario (solo frontend, se guardan en localStorage)
+ * Nota: Este endpoint no existe en la API, las preferencias se manejan solo en el frontend
+ */
+export async function updateUserPreferences(data: {
+  notifications?: {
+    paymentAlerts?: boolean;
+    eventReminders?: boolean;
+    weeklySummary?: boolean;
+  };
+  language?: string;
+  appearance?: "light" | "dark" | "system";
+}): Promise<{
+  message: string;
+}> {
+  // Las preferencias se guardan solo en el frontend (Zustand store)
+  // Si en el futuro se implementa en el backend, aquí se haría la llamada
+  return Promise.resolve({
+    message: "Preferencias actualizadas (solo frontend)",
+  });
 }
 
 export async function generateGroupEvents(groupId: number): Promise<{

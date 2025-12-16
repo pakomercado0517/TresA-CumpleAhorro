@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { GroupsHeader } from "./GroupsHeader";
+import { DynamicHeader } from "@/components/layout/DynamicHeader";
+import { Users } from "lucide-react";
 import { GroupsSearch } from "./GroupsSearch";
 import { GroupsFilters } from "./GroupsFilters";
 import { GroupsSummaryCards } from "./GroupsSummaryCards";
 import { GroupsList } from "./GroupsList";
-import { GroupsDesktopHeader } from "./GroupsDesktopHeader";
+import { Plus } from "lucide-react";
 import { GroupsDesktopControls } from "./GroupsDesktopControls";
 import { GroupsTable } from "./GroupsTable";
 import { CreateGroupModal } from "./CreateGroupModal";
@@ -217,15 +218,8 @@ export function GroupsPageContent(): React.ReactNode {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header Mobile */}
-      <div className="lg:hidden">
-        <GroupsHeader onCreateGroup={() => setIsCreateModalOpen(true)} />
-      </div>
-
-      {/* Header Desktop */}
-      <div className="hidden lg:block">
-        <GroupsDesktopHeader onCreateGroup={() => setIsCreateModalOpen(true)} />
-      </div>
+      {/* Header */}
+      <DynamicHeader title="Grupos" icon={Users} />
 
       {/* Contenido principal */}
       <div className="flex-1 overflow-auto">

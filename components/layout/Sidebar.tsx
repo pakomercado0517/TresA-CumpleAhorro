@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
-  Wallet,
   User,
   Settings,
   LogOut,
@@ -37,11 +36,6 @@ const sidebarItems: SidebarItem[] = [
     href: "/events",
     label: "Eventos",
     icon: <Calendar className="h-5 w-5" />,
-  },
-  {
-    href: "/payments",
-    label: "Pagos",
-    icon: <Wallet className="h-5 w-5" />,
   },
   {
     href: "/members",

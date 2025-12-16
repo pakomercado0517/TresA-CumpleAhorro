@@ -83,7 +83,7 @@ export function BirthdayTable({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">
           Listado Cronológico de Cumpleaños
@@ -103,27 +103,27 @@ export function BirthdayTable({
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden w-full">
+        <div className="overflow-x-auto w-full" style={{ maxWidth: '100%' }}>
+          <table className="w-full" style={{ minWidth: '800px' }}>
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-[140px]">
                   FECHA
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[180px]">
                   NOMBRE DEL MIEMBRO
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px]">
                   GRUPO
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-[140px]">
                   MONTO A RECIBIR
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-[130px]">
                   ESTADO DE PAGO
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-[140px]">
                   ACCIONES
                 </th>
               </tr>
@@ -133,7 +133,7 @@ export function BirthdayTable({
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-4 py-8 text-center text-gray-500"
                   >
                     {searchQuery
                       ? "No se encontraron resultados"
@@ -146,28 +146,32 @@ export function BirthdayTable({
                     key={birthday.id}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatFullDate(birthday.birthdayDate)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {birthday.name}
+                    <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                      <div className="max-w-[180px] truncate" title={birthday.name}>
+                        {birthday.name}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {birthday.groupName}
+                    <td className="px-4 py-4 text-sm text-gray-600">
+                      <div className="max-w-[150px] truncate" title={birthday.groupName}>
+                        {birthday.groupName}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                       {formatCurrency(birthday.expectedAmount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <Badge variant={getStatusVariant(birthday.paymentStatus)}>
                         {getStatusLabel(birthday.paymentStatus)}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
                       {birthday.paymentStatus === "paid" ? (
                         <span className="text-gray-500">Completado</span>
                       ) : (
-                        <Link href={`/events/${birthday.eventId}/payments`}>
+                        <Link href={`/events/${birthday.eventId}`}>
                           <Button
                             variant="ghost"
                             size="sm"

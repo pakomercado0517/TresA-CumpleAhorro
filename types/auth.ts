@@ -49,6 +49,7 @@ export interface User {
   name: string;
   email: string;
   emailVerified: boolean;
+  avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

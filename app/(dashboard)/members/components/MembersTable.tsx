@@ -13,7 +13,12 @@ interface MembersTableProps {
   currentPage: number;
   itemsPerPage: number;
   totalItems: number;
-  onPageChange: (page: number) => void;
+  hasMore: boolean;
+  onNextPage: () => void;
+  onPreviousPage: () => void;
+  onEdit: (member: MemberListItem) => void;
+  onDelete: (member: MemberListItem) => void;
+  isDeleting: boolean;
 }
 
 export function MembersTable({
@@ -22,7 +27,12 @@ export function MembersTable({
   currentPage,
   itemsPerPage,
   totalItems,
-  onPageChange,
+  hasMore,
+  onNextPage,
+  onPreviousPage,
+  onEdit,
+  onDelete,
+  isDeleting,
 }: MembersTableProps): React.ReactNode {
   const formatDate = (dateString: string): string => {
     try {
@@ -105,9 +115,9 @@ export function MembersTable({
     );
   }
 
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const endIndex = Math.min(startIndex + members.length, totalItems);
+  const canGoPrevious = currentPage > 1;
 
   return (
     <div className="space-y-4">
@@ -192,14 +202,18 @@ export function MembersTable({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          onClick={() => onEdit(member)}
+                          disabled={isDeleting}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label="Editar miembro"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          onClick={() => onDelete(member)}
+                          disabled={isDeleting}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label="Eliminar miembro"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -215,7 +229,7 @@ export function MembersTable({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {(canGoPrevious || hasMore) && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
             Mostrando {startIndex + 1}-{endIndex} de {totalItems} miembros
@@ -224,16 +238,16 @@ export function MembersTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={onPreviousPage}
+              disabled={!canGoPrevious}
             >
               Anterior
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={onNextPage}
+              disabled={!hasMore}
             >
               Siguiente
             </Button>

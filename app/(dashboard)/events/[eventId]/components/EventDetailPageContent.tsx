@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { EventDetailHeader } from "./EventDetailHeader";
+import { DynamicHeader } from "@/components/layout/DynamicHeader";
+import { Calendar } from "lucide-react";
 import { EventInfoCard } from "./EventInfoCard";
 import { EventInfoCardDesktop } from "./EventInfoCardDesktop";
 import { FinancialSummaryCards } from "./FinancialSummaryCards";
@@ -229,7 +230,7 @@ export function EventDetailPageContent(): React.ReactNode {
       <div className="bg-[#f8faf8] min-h-screen pb-20 overflow-x-hidden">
         {/* Mobile Loading */}
         <div className="md:hidden">
-          <EventDetailHeader />
+          <DynamicHeader title="Detalle del Evento" icon={Calendar} />
           <div className="px-4 pt-4">
             <div className="space-y-4">
               {[1, 2, 3, 4].map((i) => (
@@ -267,7 +268,10 @@ export function EventDetailPageContent(): React.ReactNode {
     <div className="bg-[#f8faf8] min-h-screen pb-20 overflow-x-hidden">
       {/* Header */}
       <div className="md:hidden flex-shrink-0 sticky top-0 z-30">
-        <EventDetailHeader />
+        <DynamicHeader 
+          title={event?.member?.name ? `Cumpleaños de ${event.member.name}` : "Detalle del Evento"} 
+          icon={Calendar} 
+        />
       </div>
 
       {/* Mobile Content */}

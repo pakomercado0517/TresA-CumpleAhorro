@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Phone, Calendar } from "lucide-react";
+import { Phone, Calendar, Edit, Trash2 } from "lucide-react";
 import type { MemberListItem } from "@/types/members";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -12,7 +12,12 @@ interface MembersMobileTableProps {
   currentPage: number;
   itemsPerPage: number;
   totalItems: number;
-  onPageChange: (page: number) => void;
+  hasMore: boolean;
+  onNextPage: () => void;
+  onPreviousPage: () => void;
+  onEdit: (member: MemberListItem) => void;
+  onDelete: (member: MemberListItem) => void;
+  isDeleting: boolean;
 }
 
 export function MembersMobileTable({
@@ -21,7 +26,12 @@ export function MembersMobileTable({
   currentPage,
   itemsPerPage,
   totalItems,
-  onPageChange,
+  hasMore,
+  onNextPage,
+  onPreviousPage,
+  onEdit,
+  onDelete,
+  isDeleting,
 }: MembersMobileTableProps): React.ReactNode {
   const formatDate = (dateString: string): string => {
     try {
@@ -81,9 +91,9 @@ export function MembersMobileTable({
     );
   }
 
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const endIndex = Math.min(startIndex + members.length, totalItems);
+  const canGoPrevious = currentPage > 1;
 
   return (
     <div className="space-y-2 md:hidden w-full overflow-x-hidden">
@@ -139,6 +149,30 @@ export function MembersMobileTable({
                     <span>{formatDate(member.birthday)}</span>
                   </div>
                 </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(member)}
+                    disabled={isDeleting}
+                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Editar miembro"
+                  >
+                    <Edit className="h-3 w-3" />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(member)}
+                    disabled={isDeleting}
+                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Eliminar miembro"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Eliminar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -146,7 +180,7 @@ export function MembersMobileTable({
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {(canGoPrevious || hasMore) && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3">
           <div className="text-xs text-gray-600">
             Mostrando {startIndex + 1}-{endIndex} de {totalItems} miembros
@@ -154,16 +188,16 @@ export function MembersMobileTable({
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={onPreviousPage}
+              disabled={!canGoPrevious}
               className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               Anterior
             </button>
             <button
               type="button"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={onNextPage}
+              disabled={!hasMore}
               className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium text-white bg-[#22c55e] rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#16a34a]"
             >
               Siguiente
