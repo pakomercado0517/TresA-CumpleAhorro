@@ -15,19 +15,23 @@ import { MembersTable } from "./MembersTable";
 import { MembersTableDesktop } from "./MembersTableDesktop";
 import {
   getEvent,
-  getEventPayments,
-  getGroupMembers,
-  getGroups,
-  getGroupEvents,
   createPayment,
   deletePayment,
 } from "@/lib/api-dashboard";
-import type { Event, Payment } from "@/types/dashboard";
+import type { Event } from "@/types/dashboard";
 
 interface Member {
   id: number;
   name: string;
   photoUrl?: string;
+}
+
+interface EventPayment {
+  id: number;
+  memberId: number;
+  amount: number;
+  datePaid: string;
+  proofUrl: string | null;
 }
 
 export function EventDetailPageContent(): React.ReactNode {
@@ -37,7 +41,7 @@ export function EventDetailPageContent(): React.ReactNode {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [event, setEvent] = useState<Event | null>(null);
-  const [payments, setPayments] = useState<Array<Payment>>([]);
+  const [payments, setPayments] = useState<Array<EventPayment>>([]);
   const [members, setMembers] = useState<Array<Member>>([]);
   const [summary, setSummary] = useState({
     totalPaid: 0,
@@ -52,78 +56,71 @@ export function EventDetailPageContent(): React.ReactNode {
       try {
         setIsLoading(true);
 
-        // Obtener evento
+        /**
+         * OPTIMIZACIÓN: Endpoint único para obtener todo el detalle del evento
+         * 
+         * Se utiliza GET /api/events/:event_id para obtener en una sola petición:
+         * - Información del evento (id, memberId, groupId, birthdayDate, expectedAmount)
+         * - Información del miembro del cumpleaños (id, name, photoUrl)
+         * - Información del grupo (id, amountPerBirthday)
+         * - Lista completa de miembros del grupo (id, name, photoUrl)
+         * - Lista de pagos del evento (id, memberId, amount, datePaid, proofUrl)
+         * - Resumen financiero calculado (totalPaid, totalExpected, percentageCompleted)
+         * 
+         * Esta optimización elimina la necesidad de múltiples peticiones:
+         * - Antes: 1 (getEvent) + 1 (getEventPayments) + 1 (getGroupMembers) + 1 (getGroups) = 4 peticiones
+         * - Ahora: 1 petición única con toda la información
+         * 
+         * Beneficios:
+         * - Reducción drástica de peticiones HTTP (de 4 a solo 1)
+         * - Datos consistentes y sincronizados
+         * - Mejor experiencia de usuario (carga más rápida)
+         * - Menor carga en el servidor y mejor escalabilidad
+         */
         const eventData = await getEvent(eventId);
-        setEvent(eventData);
 
-        // Obtener pagos (pueden tener información del miembro con groupId)
-        const paymentsData = await getEventPayments(eventId);
-        
-        setPayments(paymentsData.payments);
-        
-        // Usar expectedAmount del evento si está disponible, sino del summary
-        const expectedAmount = eventData.expectedAmount ?? paymentsData.event.expectedAmount ?? paymentsData.summary.totalExpected;
-        
-        setSummary({
-          totalPaid: paymentsData.summary.totalPaid,
-          totalExpected: expectedAmount,
-          percentageCompleted: expectedAmount > 0 
-            ? Math.round((paymentsData.summary.totalPaid / expectedAmount) * 100)
-            : 0,
+        // Mapear evento a la estructura esperada por el componente
+        setEvent({
+          id: eventData.event.id,
+          memberId: eventData.event.memberId,
+          groupId: eventData.event.groupId,
+          birthdayDate: eventData.event.birthdayDate,
+          expectedAmount: eventData.event.expectedAmount,
+          createdAt: "",
+          updatedAt: "",
+          member: {
+            id: eventData.event.member.id,
+            groupId: eventData.event.groupId,
+            name: eventData.event.member.name,
+            phone: undefined,
+            birthday: "",
+            photoUrl: eventData.event.member.photoUrl || undefined,
+            createdAt: "",
+            updatedAt: "",
+          },
         });
 
-        // Intentar obtener groupId desde diferentes fuentes
-        let groupId: number | undefined = eventData.groupId;
-        
-        // Si no viene en el evento, intentar obtenerlo de los pagos
-        if (!groupId && paymentsData.payments.length > 0) {
-          const paymentWithMember = paymentsData.payments.find(
-            (p) => p.member?.groupId
-          );
-          if (paymentWithMember?.member?.groupId) {
-            groupId = paymentWithMember.member.groupId;
-          }
-        }
+        // Establecer pagos
+        setPayments(eventData.payments);
 
-        // Si aún no tenemos groupId, buscar en todos los grupos
-        if (!groupId) {
-          const groups = await getGroups();
-          for (const group of groups) {
-            try {
-              const events = await getGroupEvents(group.id);
-              const foundEvent = events.find((e) => e.id === eventId);
-              if (foundEvent) {
-                groupId = group.id;
-                break;
-              }
-            } catch {
-              // Continuar con el siguiente grupo
-            }
-          }
-        }
-
-        // Validar que tengamos groupId
-        if (!groupId) {
-          throw new Error("No se pudo determinar el grupo del evento");
-        }
-
-        // Obtener miembros del grupo
-        const groupMembers = await getGroupMembers(groupId);
-        
+        // Establecer miembros
         setMembers(
-          groupMembers.map((m) => ({
+          eventData.members.map((m) => ({
             id: m.id,
             name: m.name,
-            photoUrl: m.photoUrl,
+            photoUrl: m.photoUrl || undefined,
           }))
         );
 
-        // Obtener monto por persona del grupo
-        const groups = await getGroups();
-        const group = groups.find((g) => g.id === groupId);
-        if (group) {
-          setAmountPerPerson(group.amountPerBirthday);
-        }
+        // Establecer resumen (ya viene calculado del backend)
+        setSummary({
+          totalPaid: eventData.summary.totalPaid,
+          totalExpected: eventData.summary.totalExpected,
+          percentageCompleted: eventData.summary.percentageCompleted,
+        });
+
+        // Establecer monto por persona
+        setAmountPerPerson(eventData.group.amountPerBirthday);
       } catch {
         // Handle error silently or show user-friendly message
       } finally {
@@ -188,26 +185,25 @@ export function EventDetailPageContent(): React.ReactNode {
         }
       }
 
-      // Recargar datos del evento
-      const paymentsData = await getEventPayments(eventId);
+      // Recargar datos del evento (una sola petición con toda la información)
+      const eventData = await getEvent(eventId);
       
-      setPayments(paymentsData.payments);
-      
-      // Usar expectedAmount del evento si está disponible, sino del summary
-      const expectedAmount = event?.expectedAmount ?? paymentsData.event.expectedAmount ?? paymentsData.summary.totalExpected;
-      
+      setPayments(eventData.payments);
       setSummary({
-        totalPaid: paymentsData.summary.totalPaid,
-        totalExpected: expectedAmount,
-        percentageCompleted: expectedAmount > 0 
-          ? Math.round((paymentsData.summary.totalPaid / expectedAmount) * 100)
-          : 0,
+        totalPaid: eventData.summary.totalPaid,
+        totalExpected: eventData.summary.totalExpected,
+        percentageCompleted: eventData.summary.percentageCompleted,
       });
     } catch {
       // Recargar datos para asegurar consistencia
       try {
-        const paymentsData = await getEventPayments(eventId);
-        setPayments(paymentsData.payments);
+        const eventData = await getEvent(eventId);
+        setPayments(eventData.payments);
+        setSummary({
+          totalPaid: eventData.summary.totalPaid,
+          totalExpected: eventData.summary.totalExpected,
+          percentageCompleted: eventData.summary.percentageCompleted,
+        });
       } catch {
         // Handle error silently
       }

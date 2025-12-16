@@ -38,6 +38,73 @@ async function fetchApi<T>(
   return response.json();
 }
 
+/**
+ * Obtiene el resumen del dashboard con información optimizada
+ * Utiliza GET /api/dashboard para obtener toda la información en una sola petición
+ */
+export async function getDashboard(options?: {
+  limit?: number; // Límite de upcomingBirthdays (default: 10, max: 50)
+  days?: number; // Rango de días para próximos cumpleaños (default: 30, max: 365)
+  includePhotoUrl?: boolean; // Incluir campo photoUrl (default: true)
+}): Promise<{
+  message: string;
+  summary: {
+    upcomingBirthdays: number; // Total de eventos en el rango (no solo los limitados)
+    paymentsToday: number; // Cantidad de pagos del día de hoy
+    totalPaymentsToday: number; // Suma de montos de pagos del día de hoy
+    totalGroups: number; // Total de grupos creados
+  };
+  upcomingBirthdays: Array<{
+    id: number; // ID del evento
+    eventId: number;
+    memberId: number;
+    name: string;
+    groupName: string;
+    birthdayDate: string; // "yyyy-MM-dd"
+    photoUrl?: string | null; // Opcional
+    paymentStatus: "paid" | "pending" | "overdue";
+    expectedAmount: number;
+  }>;
+}> {
+  const queryParams = new URLSearchParams();
+  if (options?.limit) {
+    queryParams.append("limit", options.limit.toString());
+  }
+  if (options?.days) {
+    queryParams.append("days", options.days.toString());
+  }
+  if (options?.includePhotoUrl === false) {
+    queryParams.append("includePhotoUrl", "false");
+  }
+
+  const endpoint = queryParams.toString()
+    ? `/dashboard?${queryParams.toString()}`
+    : "/dashboard";
+
+  const response = await fetchApi<{
+    message: string;
+    summary: {
+      upcomingBirthdays: number;
+      paymentsToday: number;
+      totalPaymentsToday: number;
+      totalGroups: number;
+    };
+    upcomingBirthdays: Array<{
+      id: number;
+      eventId: number;
+      memberId: number;
+      name: string;
+      groupName: string;
+      birthdayDate: string;
+      photoUrl?: string | null;
+      paymentStatus: "paid" | "pending" | "overdue";
+      expectedAmount: number;
+    }>;
+  }>(endpoint);
+
+  return response;
+}
+
 export async function getGroups(): Promise<Array<Group>> {
   const response = await fetchApi<{ message: string; groups: Array<Group> }>(
     "/groups"
@@ -155,6 +222,99 @@ export async function getGroupsOptimized(options?: {
   return response;
 }
 
+/**
+ * Obtiene todos los eventos del usuario con información completa
+ * Utiliza GET /api/events?year={{año}} para obtener eventos optimizados
+ */
+export async function getEvents(options?: {
+  year?: number;
+  status?: "active" | "pending" | "completed" | "upcoming";
+  search?: string;
+  sortBy?: "date-asc" | "date-desc" | "name-asc" | "name-desc";
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  message: string;
+  events: Array<{
+    id: number;
+    memberId: number;
+    groupId: number;
+    birthdayDate: string; // "yyyy-MM-dd"
+    expectedAmount: number;
+    totalPaid: number;
+    createdAt?: string;
+    updatedAt?: string;
+    group: {
+      id: number;
+      name?: string;
+      amountPerBirthday: number;
+      memberCount: number;
+    };
+    member: {
+      id: number;
+      groupId: number;
+      name: string;
+      phone?: string;
+      birthday: string; // "yyyy-MM-dd"
+      photoUrl?: string | null;
+    };
+  }>;
+}> {
+  const queryParams = new URLSearchParams();
+  if (options?.year) {
+    queryParams.append("year", options.year.toString());
+  }
+  if (options?.status) {
+    queryParams.append("status", options.status);
+  }
+  if (options?.search) {
+    queryParams.append("search", options.search);
+  }
+  if (options?.sortBy) {
+    queryParams.append("sortBy", options.sortBy);
+  }
+  if (options?.limit) {
+    queryParams.append("limit", options.limit.toString());
+  }
+  if (options?.offset) {
+    queryParams.append("offset", options.offset.toString());
+  }
+
+  const endpoint = queryParams.toString()
+    ? `/events?${queryParams.toString()}`
+    : "/events";
+
+  const response = await fetchApi<{
+    message: string;
+    events: Array<{
+      id: number;
+      memberId: number;
+      groupId: number;
+      birthdayDate: string;
+      expectedAmount: number;
+      totalPaid: number;
+      createdAt?: string;
+      updatedAt?: string;
+      group: {
+        id: number;
+        name?: string;
+        amountPerBirthday: number;
+        memberCount: number;
+      };
+      member: {
+        id: number;
+        groupId: number;
+        name: string;
+        phone?: string;
+        birthday: string;
+        photoUrl?: string | null;
+      };
+    }>;
+  }>(endpoint);
+
+  return response;
+}
+
 export async function getGroupEvents(groupId: number): Promise<Array<Event>> {
   const response = await fetchApi<{ message: string; events: Array<Event> }>(
     `/groups/${groupId}/events`
@@ -163,12 +323,82 @@ export async function getGroupEvents(groupId: number): Promise<Array<Event>> {
   return response.events;
 }
 
-export async function getEvent(eventId: number): Promise<Event> {
-  const response = await fetchApi<{ message: string; event: Event }>(
-    `/events/${eventId}`
-  );
+/**
+ * Obtiene el detalle completo de un evento
+ * Utiliza GET /api/events/:event_id para obtener toda la información en una sola petición
+ */
+export async function getEvent(eventId: number): Promise<{
+  event: {
+    id: number;
+    memberId: number;
+    groupId: number;
+    birthdayDate: string; // "yyyy-MM-dd"
+    expectedAmount: number;
+    member: {
+      id: number;
+      name: string;
+      photoUrl: string | null;
+    };
+  };
+  group: {
+    id: number;
+    amountPerBirthday: number;
+  };
+  members: Array<{
+    id: number;
+    name: string;
+    photoUrl: string | null;
+  }>;
+  payments: Array<{
+    id: number;
+    memberId: number;
+    amount: number;
+    datePaid: string; // "yyyy-MM-dd"
+    proofUrl: string | null;
+  }>;
+  summary: {
+    totalPaid: number;
+    totalExpected: number;
+    percentageCompleted: number;
+  };
+}> {
+  const response = await fetchApi<{
+    event: {
+      id: number;
+      memberId: number;
+      groupId: number;
+      birthdayDate: string;
+      expectedAmount: number;
+      member: {
+        id: number;
+        name: string;
+        photoUrl: string | null;
+      };
+    };
+    group: {
+      id: number;
+      amountPerBirthday: number;
+    };
+    members: Array<{
+      id: number;
+      name: string;
+      photoUrl: string | null;
+    }>;
+    payments: Array<{
+      id: number;
+      memberId: number;
+      amount: number;
+      datePaid: string;
+      proofUrl: string | null;
+    }>;
+    summary: {
+      totalPaid: number;
+      totalExpected: number;
+      percentageCompleted: number;
+    };
+  }>(`/events/${eventId}`);
 
-  return response.event;
+  return response;
 }
 
 export async function getEventPayments(eventId: number): Promise<{
@@ -271,6 +501,104 @@ export async function deleteGroup(groupId: number): Promise<void> {
   });
 }
 
+/**
+ * Obtiene todos los miembros del usuario con información completa y resumen
+ * Utiliza GET /api/members con query parameters opcionales para filtrado y paginación
+ */
+export async function getMembers(options?: {
+  search?: string;
+  month?: number; // 1-12
+  status?: "active" | "pending" | "inactive";
+  cursor?: number; // Para paginación
+  limit?: number;
+  includePhone?: boolean;
+  includePhotoUrl?: boolean;
+  includeSummary?: boolean;
+}): Promise<{
+  message: string;
+  members: Array<{
+    id: number;
+    groupId: number;
+    name: string;
+    phone?: string;
+    birthday: string; // "yyyy-MM-dd"
+    photoUrl?: string | null;
+    createdAt: string; // ISO 8601
+    updatedAt: string; // ISO 8601
+    groupName: string;
+    status: "active" | "pending" | "inactive";
+  }>;
+  summary?: {
+    totalMembers: number;
+    newMembersThisWeek: number;
+    birthdaysThisMonth: number;
+    nextBirthday?: {
+      name: string;
+      date: string; // "yyyy-MM-dd"
+    };
+    pendingPayments: number;
+  };
+}> {
+  const queryParams = new URLSearchParams();
+  if (options?.search) {
+    queryParams.append("search", options.search);
+  }
+  if (options?.month) {
+    queryParams.append("month", options.month.toString());
+  }
+  if (options?.status) {
+    queryParams.append("status", options.status);
+  }
+  if (options?.cursor) {
+    queryParams.append("cursor", options.cursor.toString());
+  }
+  if (options?.limit) {
+    queryParams.append("limit", options.limit.toString());
+  }
+  if (options?.includePhone === false) {
+    queryParams.append("includePhone", "false");
+  }
+  if (options?.includePhotoUrl === false) {
+    queryParams.append("includePhotoUrl", "false");
+  }
+  if (options?.includeSummary === false) {
+    queryParams.append("includeSummary", "false");
+  }
+
+  const endpoint = queryParams.toString()
+    ? `/members?${queryParams.toString()}`
+    : "/members";
+
+  const response = await fetchApi<{
+    message: string;
+    members: Array<{
+      id: number;
+      groupId: number;
+      name: string;
+      phone?: string;
+      birthday: string;
+      photoUrl?: string | null;
+      createdAt: string;
+      updatedAt: string;
+      groupName: string;
+      status: "active" | "pending" | "inactive";
+    }>;
+    summary?: {
+      totalMembers: number;
+      newMembersThisWeek: number;
+      birthdaysThisMonth: number;
+      nextBirthday?: {
+        name: string;
+        date: string;
+      };
+      pendingPayments: number;
+    };
+  }>(endpoint);
+
+  return response;
+}
+
+// Mantener getAllMembers por compatibilidad (deprecated)
 export async function getAllMembers(): Promise<
   Array<{
     id: number;

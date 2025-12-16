@@ -11,12 +11,7 @@ import { MembersControls } from "./MembersControls";
 import { MembersMobileTable } from "./MembersMobileTable";
 import { MembersTable } from "./MembersTable";
 import { CreateMemberModal } from "./CreateMemberModal";
-import {
-  getAllMembers,
-  getGroups,
-  getGroupEvents,
-  getEventPayments,
-} from "@/lib/api-dashboard";
+import { getMembers } from "@/lib/api-dashboard";
 import type { MemberListItem, MembersSummary } from "@/types/members";
 
 export function MembersPageContent(): React.ReactNode {
@@ -41,93 +36,65 @@ export function MembersPageContent(): React.ReactNode {
         setIsLoading(true);
         setError(null);
 
-        // Obtener todos los miembros
-        const allMembers = await getAllMembers();
+        /**
+         * OPTIMIZACIÓN: Endpoint único para obtener todos los miembros con resumen
+         * 
+         * Se utiliza GET /api/members para obtener en una sola petición:
+         * - Lista completa de miembros con información del grupo (groupName)
+         * - Estado calculado de cada miembro (active/pending/inactive)
+         * - Resumen calculado (totalMembers, newMembersThisWeek, birthdaysThisMonth, nextBirthday, pendingPayments)
+         * 
+         * Esta optimización elimina la necesidad de múltiples peticiones:
+         * - Antes: 1 (getAllMembers) + 1 (getGroups) + N (getGroupEvents) + M (getEventPayments) = 2 + N + M peticiones
+         * - Ahora: 1 petición única con toda la información
+         * 
+         * Beneficios:
+         * - Reducción drástica de peticiones HTTP (de 2+N+M a solo 1)
+         * - Resumen calculado en el backend (más eficiente)
+         * - Estado de miembros calculado en el backend
+         * - Filtrado y búsqueda en el backend (reduce datos transferidos)
+         * - Datos consistentes y sincronizados
+         * - Mejor experiencia de usuario (carga más rápida)
+         * - Menor carga en el servidor y mejor escalabilidad
+         */
+        
+        // Preparar query parameters para filtrado en el backend
+        const monthNumber = selectedMonth ? parseInt(selectedMonth, 10) : undefined;
+        
+        const response = await getMembers({
+          search: searchQuery.trim() || undefined, // Búsqueda en el backend
+          month: monthNumber, // Filtro por mes en el backend
+          includeSummary: true, // Incluir resumen calculado
+        });
 
-        // Obtener grupos para calcular resumen
-        const groups = await getGroups();
-
-        // Calcular resumen
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const oneWeekAgo = new Date(today);
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-        const currentMonth = today.getMonth();
-
-        let newMembersThisWeek = 0;
-        let birthdaysThisMonth = 0;
-        let nextBirthday: { name: string; date: string } | undefined;
-        const upcomingBirthdays: Array<{ name: string; date: string }> = [];
-
-        for (const member of allMembers) {
-          // Contar nuevos miembros esta semana
-          const createdAt = new Date(member.createdAt);
-          if (createdAt >= oneWeekAgo) {
-            newMembersThisWeek++;
-          }
-
-          // Contar cumpleaños del mes
-          const birthday = new Date(member.birthday + "T00:00:00");
-          if (birthday.getMonth() === currentMonth) {
-            birthdaysThisMonth++;
-            upcomingBirthdays.push({
-              name: member.name,
-              date: member.birthday,
-            });
-          }
-        }
-
-        // Ordenar cumpleaños y obtener el próximo
-        upcomingBirthdays.sort((a, b) => a.date.localeCompare(b.date));
-        if (upcomingBirthdays.length > 0) {
-          nextBirthday = upcomingBirthdays[0];
-        }
-
-        // Calcular pagos pendientes
-        let pendingPayments = 0;
-        for (const group of groups) {
-          try {
-            const events = await getGroupEvents(group.id);
-            for (const event of events) {
-              try {
-                const paymentsData = await getEventPayments(event.id);
-                if (paymentsData.summary.percentageCompleted < 100) {
-                  pendingPayments++;
-                }
-              } catch {
-                // Error al cargar pagos del evento
-              }
-            }
-          } catch {
-            // Error al cargar eventos del grupo
-          }
-        }
-
-        // Determinar estado de cada miembro
-        const membersWithStatus: Array<MemberListItem> = allMembers.map(
-          (member) => {
-            // Por ahora, todos están activos. Esto se puede mejorar calculando el estado real
-            const status: "active" | "pending" | "inactive" = "active";
-
-            // TODO: Calcular estado real basado en pagos pendientes
-            // Por ahora, asumimos que todos están activos
-
-            return {
-              ...member,
-              status,
-            };
-          }
+        // Mapear miembros a MemberListItem
+        const membersList: Array<MemberListItem> = response.members.map(
+          (member) => ({
+            id: member.id,
+            groupId: member.groupId,
+            name: member.name,
+            phone: member.phone,
+            birthday: member.birthday,
+            photoUrl: member.photoUrl || undefined,
+            createdAt: member.createdAt,
+            updatedAt: member.updatedAt,
+            groupName: member.groupName,
+            status: member.status,
+          })
         );
 
-        setMembers(membersWithStatus);
-        setSummary({
-          totalMembers: allMembers.length,
-          newMembersThisWeek,
-          birthdaysThisMonth,
-          nextBirthday,
-          pendingPayments,
-        });
+        setMembers(membersList);
+
+        // Establecer resumen (ya viene calculado del backend)
+        if (response.summary) {
+          setSummary({
+            totalMembers: response.summary.totalMembers,
+            newMembersThisWeek: response.summary.newMembersThisWeek,
+            birthdaysThisMonth: response.summary.birthdaysThisMonth,
+            nextBirthday: response.summary.nextBirthday,
+            pendingPayments: response.summary.pendingPayments,
+          });
+        }
       } catch (error) {
         // Error al cargar datos de miembros
         console.error("❌ Error al cargar datos de miembros:", error);
@@ -140,38 +107,11 @@ export function MembersPageContent(): React.ReactNode {
     };
 
     loadMembersData();
-  }, []);
+  }, [searchQuery, selectedMonth]); // Recargar cuando cambien los filtros
 
-  // Filtrar miembros según búsqueda y mes
-  const filteredMembers = members.filter((member) => {
-    // Validar que el miembro tenga las propiedades necesarias
-    if (!member || !member.name || !member.birthday) {
-      return false;
-    }
-
-    const matchesSearch =
-      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (member.phone?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (member.groupName?.toLowerCase() || "").includes(
-        searchQuery.toLowerCase()
-      );
-
-    // Filtrar por mes de cumpleaños si está seleccionado
-    if (selectedMonth) {
-      try {
-      const birthday = new Date(member.birthday + "T00:00:00");
-      const memberMonth = String(birthday.getMonth() + 1).padStart(2, "0");
-      if (memberMonth !== selectedMonth) {
-          return false;
-        }
-      } catch {
-        // Si hay error al parsear la fecha, excluir el miembro
-        return false;
-      }
-    }
-
-    return matchesSearch;
-  });
+  // Los miembros ya vienen filtrados del backend según searchQuery y selectedMonth
+  // No es necesario filtrar nuevamente en el frontend
+  const filteredMembers = members;
 
   // Paginación
   const startIndex = (currentPage - 1) * itemsPerPage;

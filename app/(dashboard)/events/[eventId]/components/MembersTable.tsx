@@ -3,17 +3,23 @@
 import React from "react";
 import Image from "next/image";
 import { Switch } from "@/components/ui/switch";
-import type { Payment } from "@/types/dashboard";
-
 interface Member {
   id: number;
   name: string;
   photoUrl?: string;
 }
 
+interface EventPayment {
+  id: number;
+  memberId: number;
+  amount: number;
+  datePaid: string;
+  proofUrl: string | null;
+}
+
 interface MembersTableProps {
   members: Array<Member>;
-  payments: Array<Payment>;
+  payments: Array<EventPayment>;
   onPaymentToggle: (memberId: number, paid: boolean) => void;
   isLoading?: boolean;
 }

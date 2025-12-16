@@ -8,9 +8,8 @@ import { EventsDesktopHeader } from "./EventsDesktopHeader";
 import { EventsDesktopFilters } from "./EventsDesktopFilters";
 import { EventsDesktopList } from "./EventsDesktopList";
 import { CreateEventModal } from "./CreateEventModal";
-import { getGroupsOptimized } from "@/lib/api-dashboard";
+import { getEvents } from "@/lib/api-dashboard";
 import type { EventListItem } from "@/types/events";
-import type { Group } from "@/types/dashboard";
 
 type FilterType = "all" | "in-progress" | "completed";
 type SortType = "date-asc" | "date-desc" | "name-asc" | "name-desc";
@@ -29,112 +28,92 @@ export function EventsPageContent(): React.ReactNode {
         setIsLoading(true);
 
         /**
-         * OPTIMIZACIÓN: Reutilización del endpoint optimizado de grupos para obtener eventos
+         * OPTIMIZACIÓN: Endpoint dedicado para eventos
          * 
-         * Se utiliza GET /api/groups?year={{año_actual}} para obtener en una sola petición:
-         * - Todos los grupos del usuario
-         * - Todos los eventos de esos grupos filtrados por el año en curso
-         * - Información completa de miembros asociados a cada evento
+         * Se utiliza GET /api/events?year={{año_actual}} para obtener en una sola petición:
+         * - Todos los eventos del usuario filtrados por el año en curso
+         * - Información completa del miembro asociado a cada evento (nombre, foto, etc.)
+         * - Información del grupo (amountPerBirthday, memberCount) para cada evento
          * - totalPaid calculado por evento (ya incluido en events[])
-         * - amountPerBirthday del grupo para calcular amountPerPerson
          * 
          * Esta optimización elimina la necesidad de múltiples peticiones:
          * - Antes: 1 (getAllEvents) + 1 (getGroups) + N (getGroupPayments por grupo) = 2 + N peticiones
-         * - Ahora: 1 petición única reutilizando el endpoint optimizado de grupos
+         * - Ahora: 1 petición única con endpoint dedicado para eventos
          * 
          * El filtro year={{año_actual}} asegura que solo se obtengan eventos del año en curso,
          * reduciendo el tamaño de la respuesta y mejorando el rendimiento.
          * 
          * Beneficios:
          * - Reducción drástica de peticiones HTTP (de 2+N a solo 1)
+         * - Estructura de datos más directa y fácil de procesar
          * - Datos consistentes y sincronizados
          * - Mejor experiencia de usuario (carga más rápida)
          * - Menor carga en el servidor y mejor escalabilidad
          */
         const currentYear = new Date().getFullYear();
-        const response = await getGroupsOptimized({ year: currentYear });
-        const groupsData = response.groups;
+        const response = await getEvents({ year: currentYear });
+        const eventsData = response.events;
 
-        // Crear mapa de grupos para acceso rápido
-        const groupsMap = new Map(
-          groupsData.map((g) => [g.id, g])
-        );
+        // Mapear eventos de la respuesta a EventListItem
+        const allEvents: Array<EventListItem> = eventsData.map((event) => {
+          // Calcular porcentaje completado
+          const percentageCompleted =
+            event.expectedAmount > 0
+              ? Math.round((event.totalPaid / event.expectedAmount) * 100)
+              : 0;
 
-        // Extraer todos los eventos de todos los grupos y aplanarlos
-        const allEvents: Array<EventListItem> = groupsData.flatMap((group) => {
-          return group.events.map((event) => {
-            // Calcular porcentaje completado
-            const percentageCompleted =
-              event.expectedAmount > 0
-                ? Math.round((event.totalPaid / event.expectedAmount) * 100)
-                : 0;
+          // Determinar estado del evento
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const eventDate = new Date(event.birthdayDate + "T00:00:00");
+          eventDate.setHours(0, 0, 0, 0);
 
-            // Determinar estado del evento
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const eventDate = new Date(event.birthdayDate + "T00:00:00");
-            eventDate.setHours(0, 0, 0, 0);
+          let paymentStatus: EventListItem["paymentStatus"];
 
-            let paymentStatus: EventListItem["paymentStatus"];
+          if (percentageCompleted >= 100) {
+            paymentStatus = "completed";
+          } else if (eventDate < today) {
+            // Evento pasado pero no completado
+            paymentStatus = "pending";
+          } else if (event.totalPaid > 0) {
+            // Evento futuro con pagos
+            paymentStatus = "active";
+          } else {
+            // Evento futuro sin pagos
+            paymentStatus = "upcoming";
+          }
 
-            if (percentageCompleted >= 100) {
-              paymentStatus = "completed";
-            } else if (eventDate < today) {
-              // Evento pasado pero no completado
-              paymentStatus = "pending";
-            } else if (event.totalPaid > 0) {
-              // Evento futuro con pagos
-              paymentStatus = "active";
-            } else {
-              // Evento futuro sin pagos
-              paymentStatus = "upcoming";
-            }
+          // Calcular memberCount basado en expectedAmount y amountPerBirthday
+          const memberCount =
+            event.group.amountPerBirthday > 0
+              ? Math.round(event.expectedAmount / event.group.amountPerBirthday)
+              : undefined;
 
-            // Buscar información del miembro en el array de miembros del grupo
-            const member = group.members.find((m) => m.id === event.memberId);
-
-            return {
-              id: event.id,
-              groupId: group.id,
-              memberId: event.memberId,
-              birthdayDate: event.birthdayDate,
-              expectedAmount: event.expectedAmount,
-              // Nota: createdAt y updatedAt no vienen en la respuesta optimizada del endpoint
-              // Se usan valores por defecto ya que estos campos son requeridos por el tipo Event
+          return {
+            id: event.id,
+            groupId: event.groupId,
+            memberId: event.memberId,
+            birthdayDate: event.birthdayDate,
+            expectedAmount: event.expectedAmount,
+            createdAt: event.createdAt || "",
+            updatedAt: event.updatedAt || "",
+            paymentStatus,
+            totalPaid: event.totalPaid,
+            percentageCompleted,
+            memberCount,
+            amountPerPerson: event.group.amountPerBirthday,
+            member: {
+              id: event.member.id,
+              groupId: event.member.groupId,
+              name: event.member.name,
+              phone: event.member.phone,
+              birthday: event.member.birthday,
+              photoUrl: event.member.photoUrl || undefined,
               createdAt: "",
               updatedAt: "",
-              paymentStatus,
-              totalPaid: event.totalPaid,
-              percentageCompleted,
-              memberCount: group.memberCount
-                ? Math.round(event.expectedAmount / group.amountPerBirthday)
-                : undefined,
-              amountPerPerson: group.amountPerBirthday,
-              member: member
-                ? {
-                    id: member.id,
-                    groupId: group.id,
-                    name: member.name,
-                    phone: member.phone,
-                    birthday: member.birthday,
-                    photoUrl: member.photoUrl,
-                    // Nota: createdAt y updatedAt no vienen en la respuesta optimizada
-                    // Se usan valores por defecto ya que estos campos son requeridos por el tipo
-                    createdAt: "",
-                    updatedAt: "",
-                  }
-                : {
-                    id: event.memberId,
-                    groupId: group.id,
-                    name: event.memberName,
-                    // Nota: birthday, createdAt y updatedAt no vienen en la respuesta optimizada
-                    // Se usan valores por defecto ya que estos campos son requeridos por el tipo
-                    birthday: "",
-                    createdAt: "",
-                    updatedAt: "",
-                  },
-            };
-          });
+            },
+            groupName: event.group.name,
+          };
         });
 
         // Ordenar eventos por fecha (más próximos primero)

@@ -4,22 +4,8 @@ import React, { useEffect, useState } from "react";
 import { SummaryCards } from "./SummaryCards";
 import { BirthdayList } from "./BirthdayList";
 import { BirthdayTable } from "./BirthdayTable";
-import {
-  getGroups,
-  getGroupEvents,
-  getEventPayments,
-  getEvent,
-} from "@/lib/api-dashboard";
-import {
-  calculateDashboardSummary,
-  getPaymentStatus,
-} from "@/lib/dashboard-utils";
-import type {
-  BirthdayListItem,
-  Group,
-  Event,
-  Payment,
-} from "@/types/dashboard";
+import { getDashboard } from "@/lib/api-dashboard";
+import type { BirthdayListItem } from "@/types/dashboard";
 
 export function DashboardContent(): React.ReactNode {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -36,103 +22,55 @@ export function DashboardContent(): React.ReactNode {
       try {
         setIsLoading(true);
 
-        // Obtener grupos
-        const groups = await getGroups();
-
-        // Obtener eventos de todos los grupos con información del miembro
-        const allEvents: Array<Event & { groupName: string }> = [];
-        for (const group of groups) {
-          try {
-            const events = await getGroupEvents(group.id);
-            // Para cada evento, obtener información completa con miembro
-            for (const event of events) {
-              try {
-                const fullEvent = await getEvent(event.id);
-                allEvents.push({
-                  ...fullEvent,
-                  groupName: group.name,
-                });
-              } catch (error) {
-                console.error(`Error loading event ${event.id}:`, error);
-                // Si falla, usar el evento sin información del miembro
-                allEvents.push({
-                  ...event,
-                  groupName: group.name,
-                });
-              }
-            }
-          } catch (error) {
-            console.error(`Error loading events for group ${group.id}:`, error);
-          }
-        }
-
-        // Obtener pagos de todos los eventos
-        const allPayments: Array<Payment> = [];
-        const todayStr = new Date().toISOString().split("T")[0];
-        let totalPaymentsToday = 0;
-
-        for (const event of allEvents) {
-          try {
-            const paymentsData = await getEventPayments(event.id);
-            allPayments.push(...paymentsData.payments);
-
-            // Calcular total de pagos del día
-            const todayPayments = paymentsData.payments.filter(
-              (p) => p.datePaid === todayStr
-            );
-            totalPaymentsToday += todayPayments.reduce(
-              (sum, p) => sum + p.amount,
-              0
-            );
-          } catch (error) {
-            console.error(
-              `Error loading payments for event ${event.id}:`,
-              error
-            );
-          }
-        }
-
-        // Calcular resumen
-        const calculatedSummary = calculateDashboardSummary(
-          allEvents,
-          allPayments,
-          groups
-        );
-        setSummary({
-          ...calculatedSummary,
-          totalPaymentsToday,
+        /**
+         * OPTIMIZACIÓN: Endpoint único para obtener todo el dashboard
+         * 
+         * Se utiliza GET /api/dashboard para obtener en una sola petición:
+         * - Resumen calculado (upcomingBirthdays, paymentsToday, totalPaymentsToday, totalGroups)
+         * - Lista de próximos cumpleaños (ordenados por fecha, limitados a 10 por defecto)
+         * - Estado de pago calculado para cada evento (paid/pending/overdue)
+         * 
+         * Esta optimización elimina la necesidad de múltiples peticiones:
+         * - Antes: 1 (getGroups) + N (getGroupEvents) + M (getEvent) + M (getEventPayments) = 1 + N + 2M peticiones
+         * - Ahora: 1 petición única con toda la información
+         * 
+         * Beneficios:
+         * - Reducción drástica de peticiones HTTP (de 1+N+2M a solo 1)
+         * - Resumen calculado en el backend (más eficiente)
+         * - Estado de pago calculado en el backend
+         * - Solo trae los próximos cumpleaños (no todos los eventos)
+         * - Datos consistentes y sincronizados
+         * - Mejor experiencia de usuario (carga más rápida)
+         * - Menor carga en el servidor y mejor escalabilidad
+         */
+        const dashboardData = await getDashboard({
+          limit: 10, // Límite de cumpleaños próximos a mostrar
+          days: 30, // Rango de días para considerar "próximos"
+          includePhotoUrl: true, // Incluir fotos de miembros
         });
 
-        // Crear lista de cumpleaños con información completa
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Establecer resumen (ya viene calculado del backend)
+        setSummary({
+          upcomingBirthdays: dashboardData.summary.upcomingBirthdays,
+          paymentsToday: dashboardData.summary.paymentsToday,
+          totalGroups: dashboardData.summary.totalGroups,
+          totalPaymentsToday: dashboardData.summary.totalPaymentsToday,
+        });
 
-        const birthdayList: Array<BirthdayListItem> = allEvents
-          .map((event) => {
-            const paymentStatus = getPaymentStatus(event, allPayments);
-            return {
-              id: event.id,
-              eventId: event.id,
-              memberId: event.memberId,
-              name: event.member?.name || "Sin nombre",
-              groupName: event.groupName,
-              birthdayDate: event.birthdayDate,
-              photoUrl: event.member?.photoUrl,
-              paymentStatus,
-              expectedAmount: event.expectedAmount,
-            };
+        // Mapear cumpleaños próximos a BirthdayListItem
+        const birthdayList: Array<BirthdayListItem> = dashboardData.upcomingBirthdays.map(
+          (birthday) => ({
+            id: birthday.id,
+            eventId: birthday.eventId,
+            memberId: birthday.memberId,
+            name: birthday.name,
+            groupName: birthday.groupName,
+            birthdayDate: birthday.birthdayDate,
+            photoUrl: birthday.photoUrl || undefined,
+            paymentStatus: birthday.paymentStatus,
+            expectedAmount: birthday.expectedAmount,
           })
-          .filter((item) => {
-            // Filtrar solo eventos futuros o del día de hoy
-            const eventDate = new Date(item.birthdayDate + "T00:00:00");
-            eventDate.setHours(0, 0, 0, 0);
-            return eventDate >= today;
-          })
-          .sort((a, b) => {
-            // Ordenar por fecha de cumpleaños (más próximos primero)
-            return a.birthdayDate.localeCompare(b.birthdayDate);
-          })
-          .slice(0, 10); // Limitar a 10 más próximos
+        );
 
         setBirthdays(birthdayList);
       } catch (error) {

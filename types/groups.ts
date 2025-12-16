@@ -18,9 +18,9 @@ export interface GroupListItem {
 export interface GroupMemberSummary {
   id: number;
   name: string;
-  phone?: string;
-  birthday: string; // "yyyy-MM-dd"
-  photoUrl?: string;
+  photoUrl?: string | null; // Opcional, puede ser null
+  // Nota: phone y birthday no se incluyen en la respuesta optimizada
+  // ya que no se usan en la ruta /groups
 }
 
 export interface GroupEventSummary {

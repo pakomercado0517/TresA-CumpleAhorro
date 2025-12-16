@@ -5,17 +5,23 @@ import Image from "next/image";
 import { Upload, Eye } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import type { Payment } from "@/types/dashboard";
-
 interface Member {
   id: number;
   name: string;
   photoUrl?: string;
 }
 
+interface EventPayment {
+  id: number;
+  memberId: number;
+  amount: number;
+  datePaid: string;
+  proofUrl: string | null;
+}
+
 interface MembersTableDesktopProps {
   members: Array<Member>;
-  payments: Array<Payment>;
+  payments: Array<EventPayment>;
   onPaymentToggle: (memberId: number, paid: boolean) => void;
   onViewProof?: (memberId: number) => void;
   onUploadProof?: (memberId: number) => void;
@@ -30,7 +36,7 @@ export function MembersTableDesktop({
   onUploadProof,
   isLoading = false,
 }: MembersTableDesktopProps): React.ReactNode {
-  const getMemberPayment = (memberId: number): Payment | undefined => {
+  const getMemberPayment = (memberId: number): EventPayment | undefined => {
     return payments.find((payment) => Number(payment.memberId) === Number(memberId));
   };
 
