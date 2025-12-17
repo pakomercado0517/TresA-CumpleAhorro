@@ -12,6 +12,8 @@ interface EventsDesktopFiltersProps {
   onFilterChange: (filter: FilterType) => void;
   sortBy: SortType;
   onSortChange: (sort: SortType) => void;
+  selectedYear: number | null;
+  onYearChange: (year: number | null) => void;
 }
 
 export function EventsDesktopFilters({
@@ -19,6 +21,8 @@ export function EventsDesktopFilters({
   onFilterChange,
   sortBy,
   onSortChange,
+  selectedYear,
+  onYearChange,
 }: EventsDesktopFiltersProps): React.ReactNode {
   const filters: Array<{ value: FilterType; label: string }> = [
     { value: "all", label: "Todos" },
@@ -33,10 +37,35 @@ export function EventsDesktopFilters({
     { value: "name-desc", label: "Nombre (Z-A)" },
   ];
 
+  const currentYear = new Date().getFullYear();
+  const isCurrentYearSelected = selectedYear === currentYear;
+
+  const handleYearToggle = (): void => {
+    if (isCurrentYearSelected) {
+      onYearChange(null);
+    } else {
+      onYearChange(currentYear);
+    }
+  };
+
   return (
     <div className="mb-6 flex items-center justify-between">
       {/* Filters */}
       <div className="flex items-center gap-2">
+        {/* Filtro de Año - Primera opción */}
+        <button
+          type="button"
+          onClick={handleYearToggle}
+          className={cn(
+            "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+            isCurrentYearSelected
+              ? "bg-gray-900 text-white"
+              : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+          )}
+        >
+          Este Año ({currentYear})
+        </button>
+        {/* Resto de filtros */}
         {filters.map((filter) => (
           <button
             key={filter.value}
