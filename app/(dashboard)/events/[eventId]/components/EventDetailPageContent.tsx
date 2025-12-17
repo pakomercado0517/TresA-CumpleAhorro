@@ -143,7 +143,9 @@ export function EventDetailPageContent(): React.ReactNode {
   };
 
   const handleViewPublic = (): void => {
-    // TODO: Implementar vista pública
+    if (event?.id) {
+      window.open(`/public/event/${event.id}`, "_blank");
+    }
   };
 
   const handleShareWhatsApp = (): void => {
