@@ -329,6 +329,79 @@ export async function getGroupEvents(groupId: number): Promise<Array<Event>> {
  * Obtiene el detalle completo de un evento
  * Utiliza GET /api/events/:event_id para obtener toda la información en una sola petición
  */
+/**
+ * Obtiene el detalle de un evento para vista pública (sin autenticación)
+ * Utiliza GET /api/public/events/:event_id
+ */
+export async function getPublicEvent(eventId: number): Promise<{
+  message: string;
+  event: {
+    id: number;
+    memberId: number;
+    groupId: number;
+    birthdayDate: string; // "yyyy-MM-dd"
+    expectedAmount: number;
+    member: {
+      id: number;
+      name: string;
+      photoUrl: string | null;
+    };
+  };
+  group: {
+    id: number;
+    name: string;
+    amountPerBirthday: number;
+    totalMembers: number;
+  };
+  members: Array<{
+    id: number;
+    name: string;
+    photoUrl: string | null;
+  }>;
+  payments: Array<{
+    id: number;
+    memberId: number;
+    amount: number;
+    datePaid: string; // "yyyy-MM-dd"
+    proofUrl: string | null;
+  }>;
+  summary: {
+    totalPaid: number;
+    totalExpected: number;
+    percentageCompleted: number;
+    remaining: number;
+  };
+  status: {
+    label: string;
+    value: "active" | "completed" | "pending" | "upcoming";
+  };
+}> {
+  // Para endpoints públicos, no incluimos el token de autenticación
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+
+  const response = await fetch(`${API_BASE_URL}/public/events/${eventId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error ||
+        `Error al obtener evento público: ${response.statusText}`
+    );
+  }
+
+  return response.json();
+}
+
+/**
+ * Obtiene el detalle completo de un evento
+ * Utiliza GET /api/events/:event_id para obtener toda la información en una sola petición
+ */
 export async function getEvent(eventId: number): Promise<{
   event: {
     id: number;
@@ -942,7 +1015,10 @@ export async function changeUserPassword(data: {
     },
     body: JSON.stringify(data),
   });
-  console.log("✅ [API] PUT /api/users/me/password - Respuesta recibida:", response);
+  console.log(
+    "✅ [API] PUT /api/users/me/password - Respuesta recibida:",
+    response
+  );
   return response;
 }
 
@@ -950,9 +1026,7 @@ export async function changeUserPassword(data: {
  * Actualiza el avatar del usuario autenticado
  * Utiliza PUT /api/users/me/avatar
  */
-export async function updateUserAvatar(data: {
-  avatarUrl: string;
-}): Promise<{
+export async function updateUserAvatar(data: { avatarUrl: string }): Promise<{
   id: number;
   name: string;
   email: string;
@@ -981,7 +1055,10 @@ export async function updateUserAvatar(data: {
     },
     body: JSON.stringify(data),
   });
-  console.log("✅ [API] PUT /api/users/me/avatar - Respuesta recibida:", response);
+  console.log(
+    "✅ [API] PUT /api/users/me/avatar - Respuesta recibida:",
+    response
+  );
   return response.user;
 }
 
@@ -989,7 +1066,7 @@ export async function updateUserAvatar(data: {
  * Actualiza las preferencias del usuario (solo frontend, se guardan en localStorage)
  * Nota: Este endpoint no existe en la API, las preferencias se manejan solo en el frontend
  */
-export async function updateUserPreferences(data: {
+export async function updateUserPreferences(_data: {
   notifications?: {
     paymentAlerts?: boolean;
     eventReminders?: boolean;
@@ -1002,6 +1079,7 @@ export async function updateUserPreferences(data: {
 }> {
   // Las preferencias se guardan solo en el frontend (Zustand store)
   // Si en el futuro se implementa en el backend, aquí se haría la llamada
+  // El parámetro _data está preparado para uso futuro
   return Promise.resolve({
     message: "Preferencias actualizadas (solo frontend)",
   });

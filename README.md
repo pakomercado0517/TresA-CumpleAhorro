@@ -92,9 +92,35 @@ Navega a [http://localhost:3000](http://localhost:3000)
 
 ## 🔧 Variables de Entorno
 
-| Variable              | Descripción                    | Ejemplo                     |
-| --------------------- | ------------------------------ | --------------------------- |
-| `NEXT_PUBLIC_API_URL` | URL base de la API del backend | `http://localhost:3001/api` |
+### Configuración
+
+1. **Copia el archivo de ejemplo:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. **Edita `.env.local` con tus valores:**
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:3001/api
+   ```
+
+3. **Reinicia el servidor de desarrollo**
+
+### Variables Disponibles
+
+| Variable              | Descripción                    | Ejemplo                     | Requerida |
+| --------------------- | ------------------------------ | --------------------------- | --------- |
+| `NEXT_PUBLIC_API_URL` | URL base de la API del backend | `http://localhost:3001/api` | ✅ Sí     |
+
+### Para Producción
+
+Configura las siguientes variables en tu plataforma de despliegue (Vercel, Netlify, etc.):
+
+```env
+NEXT_PUBLIC_API_URL=https://api.tu-dominio.com/api
+```
+
+**Nota:** Las variables con prefijo `NEXT_PUBLIC_` son accesibles en el cliente. No incluyas información sensible aquí.
 
 ## 📜 Scripts Disponibles
 
