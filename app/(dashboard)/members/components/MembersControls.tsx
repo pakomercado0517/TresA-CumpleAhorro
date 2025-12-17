@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +12,7 @@ interface MembersControlsProps {
   onMonthChange: (month: string) => void;
   selectedStatus: string;
   onStatusChange: (status: string) => void;
+  onCreateMember: () => void;
 }
 
 const months = [
@@ -44,6 +45,7 @@ export function MembersControls({
   onMonthChange,
   selectedStatus,
   onStatusChange,
+  onCreateMember,
 }: MembersControlsProps): React.ReactNode {
   return (
     <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -86,6 +88,13 @@ export function MembersControls({
           </select>
           <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
         </div>
+        <Button
+          onClick={onCreateMember}
+          className="bg-[#22c55e] hover:bg-[#16a34a] text-white flex items-center gap-2 whitespace-nowrap"
+        >
+          <Plus className="h-4 w-4" />
+          Crear Miembro
+        </Button>
       </div>
     </div>
   );

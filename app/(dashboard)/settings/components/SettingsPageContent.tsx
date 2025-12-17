@@ -392,6 +392,25 @@ export function SettingsPageContent(): React.ReactNode {
               </Button>
             </div>
           </div>
+
+          {/* Botones de acción - Desktop */}
+          <div className="hidden md:flex items-center justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSaving || !hasChanges()}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || !hasChanges()}
+              className="bg-[#22c55e] hover:bg-[#16a34a] text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isSaving ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </div>
         </div>
       </div>
     </>

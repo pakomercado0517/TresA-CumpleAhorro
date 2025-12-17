@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Filter, Download } from "lucide-react";
+import { Search, Filter, Download, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +10,7 @@ interface GroupsDesktopControlsProps {
   onSearchChange: (query: string) => void;
   onFilterClick: () => void;
   onExportClick: () => void;
+  onCreateGroup: () => void;
 }
 
 export function GroupsDesktopControls({
@@ -17,6 +18,7 @@ export function GroupsDesktopControls({
   onSearchChange,
   onFilterClick,
   onExportClick,
+  onCreateGroup,
 }: GroupsDesktopControlsProps): React.ReactNode {
   return (
     <div className="mb-6 flex items-center gap-4">
@@ -45,6 +47,13 @@ export function GroupsDesktopControls({
       >
         <Download className="h-4 w-4" />
         Exportar
+      </Button>
+      <Button
+        onClick={onCreateGroup}
+        className="bg-[#22c55e] hover:bg-[#16a34a] text-white flex items-center gap-2"
+      >
+        <Plus className="h-4 w-4" />
+        Crear Grupo
       </Button>
     </div>
   );
