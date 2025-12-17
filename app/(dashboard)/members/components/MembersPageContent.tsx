@@ -260,6 +260,7 @@ export function MembersPageContent(): React.ReactNode {
           onMonthChange={setSelectedMonth}
           selectedStatus={selectedStatus}
           onStatusChange={setSelectedStatus}
+          onCreateMember={handleCreateMember}
         />
 
         <MembersTable
@@ -276,6 +277,17 @@ export function MembersPageContent(): React.ReactNode {
           isDeleting={isDeleting}
         />
       </main>
+
+      {/* Botón flotante para crear miembro (Mobile) */}
+      <div className="md:hidden fixed bottom-20 right-4 z-40">
+        <button
+          onClick={handleCreateMember}
+          className="h-14 w-14 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white shadow-lg flex items-center justify-center transition-all hover:scale-110"
+          aria-label="Crear miembro"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      </div>
 
       {/* Create Member Modal */}
       <CreateMemberModal
