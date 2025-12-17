@@ -4,6 +4,8 @@ import React from "react";
 import Link from "next/link";
 
 export function LandingFooter(): React.ReactNode {
+  const year = new Date().getFullYear();
+
   return (
     <footer className="px-4 py-8 md:py-12 border-t border-gray-200 bg-white">
       <div className="mx-auto max-w-6xl">
@@ -32,7 +34,7 @@ export function LandingFooter(): React.ReactNode {
           </div>
         </div>
         <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-          <p>© 2024 Tandas. Todos los derechos reservados.</p>
+          <p>© {year || 2024} Tandas. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>
