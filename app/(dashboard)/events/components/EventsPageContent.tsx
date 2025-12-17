@@ -21,6 +21,7 @@ export function EventsPageContent(): React.ReactNode {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<SortType>("date-asc");
+  const [selectedYear, setSelectedYear] = useState<number | null>(new Date().getFullYear());
   const [events, setEvents] = useState<Array<EventListItem>>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
 
@@ -32,8 +33,8 @@ export function EventsPageContent(): React.ReactNode {
         /**
          * OPTIMIZACIÓN: Endpoint dedicado para eventos
          * 
-         * Se utiliza GET /api/events?year={{año_actual}} para obtener en una sola petición:
-         * - Todos los eventos del usuario filtrados por el año en curso
+         * Se utiliza GET /api/events?year={{año_seleccionado}} para obtener en una sola petición:
+         * - Todos los eventos del usuario filtrados por el año seleccionado
          * - Información completa del miembro asociado a cada evento (nombre, foto, etc.)
          * - Información del grupo (amountPerBirthday, memberCount) para cada evento
          * - totalPaid calculado por evento (ya incluido en events[])
@@ -42,7 +43,7 @@ export function EventsPageContent(): React.ReactNode {
          * - Antes: 1 (getAllEvents) + 1 (getGroups) + N (getGroupPayments por grupo) = 2 + N peticiones
          * - Ahora: 1 petición única con endpoint dedicado para eventos
          * 
-         * El filtro year={{año_actual}} asegura que solo se obtengan eventos del año en curso,
+         * El filtro year={{año_seleccionado}} permite filtrar eventos por año específico,
          * reduciendo el tamaño de la respuesta y mejorando el rendimiento.
          * 
          * Beneficios:
@@ -52,8 +53,9 @@ export function EventsPageContent(): React.ReactNode {
          * - Mejor experiencia de usuario (carga más rápida)
          * - Menor carga en el servidor y mejor escalabilidad
          */
-        const currentYear = new Date().getFullYear();
-        const response = await getEvents({ year: currentYear });
+        const response = await getEvents({ 
+          year: selectedYear || undefined 
+        });
         const eventsData = response.events;
 
         // Mapear eventos de la respuesta a EventListItem
@@ -132,7 +134,7 @@ export function EventsPageContent(): React.ReactNode {
     };
 
     loadEventsData();
-  }, []);
+  }, [selectedYear]);
 
   // Filtrar y ordenar eventos
   const filteredAndSortedEvents = useMemo(() => {
@@ -214,6 +216,8 @@ export function EventsPageContent(): React.ReactNode {
           <EventsFilters
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
           />
         </div>
 
@@ -269,6 +273,8 @@ export function EventsPageContent(): React.ReactNode {
           onFilterChange={setActiveFilter}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          selectedYear={selectedYear}
+          onYearChange={setSelectedYear}
         />
 
         <EventsDesktopList
