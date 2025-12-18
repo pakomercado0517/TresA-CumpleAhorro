@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -88,13 +88,16 @@ export function LoginForm(): React.ReactNode {
         <label htmlFor="email" className="text-sm font-medium text-gray-700">
           Email
         </label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="Ingresa tu email"
-          {...register("email")}
-          className={errors.email ? "border-red-500" : ""}
-        />
+        <div className="relative">
+          <Input
+            id="email"
+            type="email"
+            placeholder="Ingresa tu email"
+            {...register("email")}
+            className={errors.email ? "border-red-500 pr-10" : "pr-10"}
+          />
+          <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+        </div>
         {errors.email && (
           <p className="text-sm text-red-600">{errors.email.message}</p>
         )}

@@ -1,4 +1,4 @@
-import { LoginHeader } from "@/components/layout/LoginHeader";
+import { AuthHeader } from "@/components/layout/AuthHeader";
 import { LoginContent } from "./components/LoginContent";
 import { LoginFooter } from "./components/LoginFooter";
 import React, { Suspense } from "react";
@@ -16,7 +16,7 @@ function LoginContentFallback(): React.ReactNode {
 export default function LoginPage(): React.ReactNode {
   return (
     <div className="min-h-screen bg-[#f8faf8] flex flex-col">
-      <LoginHeader />
+      <AuthHeader />
       <Suspense fallback={<LoginContentFallback />}>
         <LoginContent />
       </Suspense>
