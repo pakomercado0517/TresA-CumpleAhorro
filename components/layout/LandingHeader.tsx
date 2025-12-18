@@ -13,7 +13,9 @@ export function LandingHeader(): React.ReactNode {
           <div className="h-1 w-6 bg-gray-700 rounded-sm"></div>
           <div className="h-1 w-6 bg-gray-700 rounded-sm"></div>
         </div>
-        <span className="text-xl font-semibold text-gray-700">Tandas</span>
+        <span className="text-xl font-semibold text-gray-700">
+          CumpleAhorro
+        </span>
       </div>
       <div className="flex items-center gap-3">
         <Link href="/login">
