@@ -12,9 +12,7 @@ export function PublicEventHeader(): React.ReactNode {
               <div className="h-3 w-3 bg-[#22c55e] rounded-full"></div>
             </div>
           </div>
-          <span className="text-2xl font-bold text-gray-900">
-            Tanda Cumpleañera
-          </span>
+          <span className="text-2xl font-bold text-gray-900">CumpleAhorro</span>
         </div>
       </div>
     </header>

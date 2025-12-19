@@ -14,11 +14,7 @@ import { EventActions } from "./EventActions";
 import { EventActionsDesktop } from "./EventActionsDesktop";
 import { MembersTable } from "./MembersTable";
 import { MembersTableDesktop } from "./MembersTableDesktop";
-import {
-  getEvent,
-  createPayment,
-  deletePayment,
-} from "@/lib/api-dashboard";
+import { getEvent, createPayment, deletePayment } from "@/lib/api-dashboard";
 import type { Event } from "@/types/dashboard";
 
 interface Member {
@@ -50,7 +46,8 @@ export function EventDetailPageContent(): React.ReactNode {
     percentageCompleted: 0,
   });
   const [amountPerPerson, setAmountPerPerson] = useState<number>(0);
-  const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+  const [isProcessingPayment, setIsProcessingPayment] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const loadEventData = async (): Promise<void> => {
@@ -59,7 +56,7 @@ export function EventDetailPageContent(): React.ReactNode {
 
         /**
          * OPTIMIZACIÓN: Endpoint único para obtener todo el detalle del evento
-         * 
+         *
          * Se utiliza GET /api/events/:event_id para obtener en una sola petición:
          * - Información del evento (id, memberId, groupId, birthdayDate, expectedAmount)
          * - Información del miembro del cumpleaños (id, name, photoUrl)
@@ -67,11 +64,11 @@ export function EventDetailPageContent(): React.ReactNode {
          * - Lista completa de miembros del grupo (id, name, photoUrl)
          * - Lista de pagos del evento (id, memberId, amount, datePaid, proofUrl)
          * - Resumen financiero calculado (totalPaid, totalExpected, percentageCompleted)
-         * 
+         *
          * Esta optimización elimina la necesidad de múltiples peticiones:
          * - Antes: 1 (getEvent) + 1 (getEventPayments) + 1 (getGroupMembers) + 1 (getGroups) = 4 peticiones
          * - Ahora: 1 petición única con toda la información
-         * 
+         *
          * Beneficios:
          * - Reducción drástica de peticiones HTTP (de 4 a solo 1)
          * - Datos consistentes y sincronizados
@@ -153,7 +150,7 @@ export function EventDetailPageContent(): React.ReactNode {
     const message = encodeURIComponent(
       `¡Hola! Te invito a ver el evento: ${event?.member?.name || "Evento"}`
     );
-    const url = `${window.location.origin}/events/${eventId}/public`;
+    const url = `${window.location.origin}/public/event/${eventId}`;
     window.open(`https://wa.me/?text=${message}%20${url}`, "_blank");
   };
 
@@ -167,7 +164,7 @@ export function EventDetailPageContent(): React.ReactNode {
     }
 
     setIsProcessingPayment(true);
-    
+
     try {
       if (paid) {
         // Crear pago
@@ -177,12 +174,12 @@ export function EventDetailPageContent(): React.ReactNode {
           amount: amountPerPerson,
           datePaid: today,
         };
-        
+
         await createPayment(eventId, paymentData);
       } else {
         // Eliminar pago
         const payment = payments.find((p) => p.memberId === memberId);
-        
+
         if (payment) {
           await deletePayment(payment.id);
         }
@@ -190,7 +187,7 @@ export function EventDetailPageContent(): React.ReactNode {
 
       // Recargar datos del evento (una sola petición con toda la información)
       const eventData = await getEvent(eventId);
-      
+
       setPayments(eventData.payments);
       setSummary({
         totalPaid: eventData.summary.totalPaid,
@@ -236,10 +233,7 @@ export function EventDetailPageContent(): React.ReactNode {
           <div className="px-4 pt-4">
             <div className="space-y-4">
               {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-lg p-4 animate-pulse"
-                >
+                <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
                   <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
                   <div className="h-4 bg-gray-200 rounded w-1/2" />
                 </div>
@@ -252,10 +246,7 @@ export function EventDetailPageContent(): React.ReactNode {
         <main className="hidden md:block pt-8 px-8 max-w-7xl mx-auto w-full">
           <div className="space-y-6">
             {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-lg p-6 animate-pulse"
-              >
+              <div key={i} className="bg-white rounded-lg p-6 animate-pulse">
                 <div className="h-6 bg-gray-200 rounded w-3/4 mb-2" />
                 <div className="h-4 bg-gray-200 rounded w-1/2" />
               </div>
@@ -270,9 +261,13 @@ export function EventDetailPageContent(): React.ReactNode {
     <div className="bg-[#f8faf8] min-h-screen pb-20 overflow-x-hidden">
       {/* Header */}
       <div className="md:hidden flex-shrink-0 sticky top-0 z-30">
-        <DynamicHeader 
-          title={event?.member?.name ? `Cumpleaños de ${event.member.name}` : "Detalle del Evento"} 
-          icon={Calendar} 
+        <DynamicHeader
+          title={
+            event?.member?.name
+              ? `Cumpleaños de ${event.member.name}`
+              : "Detalle del Evento"
+          }
+          icon={Calendar}
         />
       </div>
 
@@ -377,4 +372,3 @@ export function EventDetailPageContent(): React.ReactNode {
     </div>
   );
 }
-
