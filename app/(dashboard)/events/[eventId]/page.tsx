@@ -22,3 +22,4 @@ export default function EventDetailPage(): React.ReactNode {
 
 
 
+

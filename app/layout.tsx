@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tandas - Gestión de Tandas de Cumpleaños",
-  description: "Sistema de gestión de tandas de cumpleaños",
+  title: "CumpleAhorro - Gestión de Tandas de Cumpleaños",
+  description: "Sistema de gestión de tandas de cumpleaños desarrollado por TresA Design",
 };
 
 export default function RootLayout({
