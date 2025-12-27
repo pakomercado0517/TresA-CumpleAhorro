@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "normalize": "node -e \"const fs=require('fs');const path=require('path');function normalize(dir){const files=fs.readdirSync(dir);files.forEach(f=>{const p=path.join(dir,f);if(fs.statSync(p).isDirectory()){if(!['node_modules','.next','out','build'].includes(f))normalize(p);}else if(/\\\\.(ts|tsx|js|jsx|json|css|md|yml|yaml|txt)$/.test(f)){let c=fs.readFileSync(p,'utf8');c=c.replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');if(!c.endsWith('\\n'))c+='\\n';fs.writeFileSync(p,c,'utf8');}});}normalize('.');console.log('Finales de línea normalizados.');\""
+    "normalize": "node -e \"const fs=require('fs');const path=require('path');function normalize(dir){const files=fs.readdirSync(dir);files.forEach(f=>{const p=path.join(dir,f);if(fs.statSync(p).isDirectory()){if(!['node_modules','.next','out','build'].includes(f))normalize(p);}else if(/\\\\.(ts|tsx|js|jsx|json|css|md|yml|yaml|txt)$/.test(f)){let c=fs.readFileSync(p,'utf8');c=c.replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');if(!c.endsWith('\\n'))c+='\\n';fs.writeFileSync(p,c,'utf8');}});}normalize('.');console.log('Finales de línea normalizados.');\"",
+    "generate-favicons": "node scripts/generate-favicons.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -33,7 +34,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.8",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "to-ico": "^1.1.5",
     "typescript": "^5"
   }
 }
