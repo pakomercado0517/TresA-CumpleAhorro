@@ -1,4 +1,5 @@
 import type { Group, Event, Payment } from "@/types/dashboard";
+import { useAuthStore } from "@/stores/authStore";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
@@ -29,6 +30,25 @@ async function fetchApi<T>(
       Authorization: token ? `Bearer ${token}` : "",
     },
   });
+
+  // Detectar error 401 (token expirado) y hacer logout automático
+  if (response.status === 401) {
+    console.warn("🔒 Sesión expirada - redirigiendo a login");
+    
+    // Limpiar autenticación
+    if (typeof window !== "undefined") {
+      useAuthStore.getState().logout();
+      
+      // Mostrar mensaje al usuario y redirigir
+      const currentPath = window.location.pathname;
+      const message = encodeURIComponent("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+      
+      // Redirigir a login con mensaje y ruta de retorno
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}&message=${message}`;
+    }
+    
+    throw new Error("Sesión expirada");
+  }
 
   if (!response.ok) {
     const error = await response.json();

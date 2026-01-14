@@ -11,6 +11,7 @@ import type {
   ApiError,
 } from "@/types/auth";
 import { getAuthHeaders } from "./auth";
+import { useAuthStore } from "@/stores/authStore";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
@@ -35,6 +36,22 @@ async function fetchApi<T>(
       ...options.headers,
     },
   });
+
+  // Detectar error 401 en endpoints que requieren autenticación
+  if (response.status === 401 && requireAuth) {
+    console.warn("🔒 Sesión expirada - redirigiendo a login");
+    
+    if (typeof window !== "undefined") {
+      useAuthStore.getState().logout();
+      
+      const currentPath = window.location.pathname;
+      const message = encodeURIComponent("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+      
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}&message=${message}`;
+    }
+    
+    throw new Error("Sesión expirada");
+  }
 
   const data = await response.json();
 

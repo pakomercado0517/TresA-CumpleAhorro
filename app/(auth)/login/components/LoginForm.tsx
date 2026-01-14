@@ -50,6 +50,15 @@ export function LoginForm(): React.ReactNode {
     return null;
   }, [searchParams]);
 
+  // Deriva el mensaje de sesión expirada del parámetro de URL
+  const sessionExpiredMessage = useMemo<string | null>(() => {
+    const messageParam = searchParams.get("message");
+    if (messageParam) {
+      return decodeURIComponent(messageParam);
+    }
+    return null;
+  }, [searchParams]);
+
   const onSubmit = async (data: LoginFormData): Promise<void> => {
     setIsLoading(true);
     setError(null);
@@ -73,6 +82,16 @@ export function LoginForm(): React.ReactNode {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Mensaje de sesión expirada */}
+      {sessionExpiredMessage && (
+        <div className="rounded-md bg-yellow-50 border border-yellow-200 p-3">
+          <div className="flex items-start gap-2">
+            <span className="text-yellow-600 text-lg">⚠️</span>
+            <p className="text-sm text-yellow-800 flex-1">{sessionExpiredMessage}</p>
+          </div>
+        </div>
+      )}
+
       {displaySuccess && (
         <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
           {displaySuccess}
